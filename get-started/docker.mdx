@@ -1,0 +1,97 @@
+---
+title: Docker installation
+description: Run Open-LLM-VTuber using the official Docker image from Docker Hub.
+---
+
+The official Docker image is published to Docker Hub as `open-llm-vtuber/open-llm-vtuber`.
+
+<Warning>
+Docker image does not auto-download ASR models. You must provide a `conf.yaml` with model paths that point to files you mount into the container, or use a cloud-based ASR provider that does not require local model files.
+</Warning>
+
+## Volume mounts
+
+The container expects the following mounts:
+
+| Host path | Container path | Purpose |
+|---|---|---|
+| `./conf/conf.yaml` | `/app/conf/conf.yaml` | **Required.** Your configuration file. |
+| `./models` | `/app/models` | Model files (ASR, TTS, LLM). |
+| `./chat_history` | `/app/chat_history` | Persistent conversation history. |
+| `./characters` | `/app/conf/characters` | Character YAML files (optional). |
+| `./live2d-models` | `/app/conf/live2d-models` | Custom Live2D models (optional). |
+| `./avatars` | `/app/conf/avatars` | Avatar images (optional). |
+
+<Note>
+The container will not start without `/app/conf/conf.yaml`. Prepare your config file before running the container.
+</Note>
+
+## Docker Compose
+
+Create a `docker-compose.yml` in your working directory:
+
+```yaml docker-compose.yml
+services:
+  open-llm-vtuber:
+    image: open-llm-vtuber/open-llm-vtuber:latest
+    ports:
+      - "12393:12393"
+    volumes:
+      - ./conf:/app/conf
+      - ./models:/app/models
+      - ./chat_history:/app/chat_history
+    restart: unless-stopped
+```
+
+Then prepare your config and start the container:
+
+```bash
+mkdir -p conf models chat_history
+cp /path/to/your/conf.yaml conf/conf.yaml
+docker compose up
+```
+
+Open your browser at `http://localhost:12393`.
+
+## Docker run (without Compose)
+
+```bash
+docker run -d \
+  --name open-llm-vtuber \
+  -p 12393:12393 \
+  -v "$(pwd)/conf:/app/conf" \
+  -v "$(pwd)/models:/app/models" \
+  -v "$(pwd)/chat_history:/app/chat_history" \
+  open-llm-vtuber/open-llm-vtuber:latest
+```
+
+## Configuration for Docker
+
+When running inside Docker, any service that the container needs to reach on the host machine (such as Ollama) must use the host's network address rather than `localhost`. On Docker Desktop (Windows and macOS), use `host.docker.internal`:
+
+```yaml conf.yaml
+character_config:
+  agent_config:
+    llm_configs:
+      ollama_llm:
+        base_url: 'http://host.docker.internal:11434/v1'
+```
+
+On Linux with Docker Engine, use `--network host` or the host's LAN IP address.
+
+## Accessing from another device
+
+By default the server binds to all interfaces inside the container, but if you want to reach it from a phone or another machine, you may also need to configure HTTPS. Browsers require a secure context (`https` or `localhost`) to access the microphone.
+
+<Warning>
+The microphone will not work over plain HTTP on a non-localhost address. Set up a reverse proxy with HTTPS if you need to access the UI from another device.
+</Warning>
+
+## Updating the image
+
+Pull the latest image and restart the container:
+
+```bash
+docker compose pull
+docker compose up -d
+```

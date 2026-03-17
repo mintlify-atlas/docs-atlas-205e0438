@@ -1,0 +1,120 @@
+---
+title: "GPT-SoVITS"
+description: "Configure GPT-SoVITS voice cloning TTS in Open LLM VTuber by connecting to a running GPT-SoVITS server."
+---
+
+GPT-SoVITS is a high-quality voice cloning model that can synthesise speech in any voice given a short reference audio clip. Open LLM VTuber connects to a running GPT-SoVITS server via its HTTP API, so you need to run the GPT-SoVITS server separately before starting Open LLM VTuber.
+
+<Info>
+  GPT-SoVITS is a self-hosted solution. The quality of the cloned voice depends heavily on the reference audio you provide. A 3–10 second clean recording works well.
+</Info>
+
+## Setup
+
+<Steps>
+  <Step title="Install and launch GPT-SoVITS">
+    Follow the GPT-SoVITS project instructions to install and run the server. By default it serves the TTS API on `http://127.0.0.1:9880`.
+
+    The repository is available at: [https://github.com/RVC-Boss/GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
+  </Step>
+  <Step title="Prepare a reference audio file">
+    Record or obtain a short (3–10 second) audio clip in the target voice, saved as a WAV file. Place it in a location accessible to Open LLM VTuber (e.g., the project root). Note the full file path.
+  </Step>
+  <Step title="Set tts_model to gpt_sovits_tts">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'gpt_sovits_tts'
+    ```
+  </Step>
+  <Step title="Configure the TTS section">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'gpt_sovits_tts'
+        gpt_sovits_tts:
+          api_url: 'http://127.0.0.1:9880/tts'
+          text_lang: 'zh'
+          ref_audio_path: '/path/to/reference.wav'
+          prompt_lang: 'zh'
+          prompt_text: 'The text spoken in the reference audio'
+          text_split_method: 'cut5'
+          batch_size: '1'
+          media_type: 'wav'
+          streaming_mode: 'false'
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'gpt_sovits_tts'
+    gpt_sovits_tts:
+      api_url: 'http://127.0.0.1:9880/tts'
+      text_lang: 'zh'
+      ref_audio_path: ''
+      prompt_lang: 'zh'
+      prompt_text: ''
+      text_split_method: 'cut5'
+      batch_size: '1'
+      media_type: 'wav'
+      streaming_mode: 'false'
+```
+
+<ParamField path="api_url" type="string" required>
+  The full URL of the GPT-SoVITS TTS API endpoint. Default is `http://127.0.0.1:9880/tts`.
+</ParamField>
+
+<ParamField path="text_lang" type="string" required>
+  Language of the text to synthesise. Common values: `zh` (Mandarin Chinese), `en` (English), `ja` (Japanese).
+</ParamField>
+
+<ParamField path="ref_audio_path" type="string" required>
+  Path to the reference audio file (WAV). This file provides the voice characteristics for cloning. Place the file in the GPT-SoVITS root directory or specify an absolute path.
+</ParamField>
+
+<ParamField path="prompt_lang" type="string" required>
+  Language of the text spoken in the reference audio. Should match the actual language in `ref_audio_path`.
+</ParamField>
+
+<ParamField path="prompt_text" type="string">
+  The transcript of the reference audio. Providing an accurate transcript improves synthesis quality.
+</ParamField>
+
+<ParamField path="text_split_method" type="string" default="cut5">
+  Method used to split long input text into segments. `cut5` splits at natural sentence boundaries. Refer to GPT-SoVITS documentation for other options.
+</ParamField>
+
+<ParamField path="batch_size" type="string" default="1">
+  Number of text segments to process in a single inference batch. Higher values may improve throughput on GPU at the cost of latency for the first segment.
+</ParamField>
+
+<ParamField path="media_type" type="string" default="wav">
+  Output audio format. `wav` is recommended for compatibility.
+</ParamField>
+
+<ParamField path="streaming_mode" type="string" default="false">
+  Whether to use streaming mode for audio output. Set to `'true'` to enable. Streaming reduces time-to-first-audio but requires streaming support in the server version you are running.
+</ParamField>
+
+## Tips for best results
+
+<Tip>
+  Use a clean, noise-free reference recording. Background noise or music in the reference audio degrades the cloned voice quality.
+</Tip>
+
+<Tip>
+  Set `prompt_text` to the exact transcript of the reference audio. Even small inaccuracies in the transcript can affect prosody.
+</Tip>
+
+<Warning>
+  If `ref_audio_path` is empty or points to a non-existent file, the GPT-SoVITS server will return an error. Open LLM VTuber will log the HTTP status code and return no audio.
+</Warning>

@@ -1,0 +1,121 @@
+---
+title: "Coqui TTS"
+description: "Configure Coqui TTS for local, offline neural speech synthesis with voice cloning support in Open LLM VTuber."
+---
+
+Coqui TTS (also known as `TTS`) is an open-source library that provides a large library of pre-trained models including single-speaker, multi-speaker, and voice-cloning models. All models run locally on your machine.
+
+<Warning>
+  The original Coqui TTS company has shut down, but the open-source `TTS` package remains available and functional. The package is maintained by the community. Some models, particularly multilingual voice-cloning models like `xtts_v2`, require significant disk space and RAM.
+</Warning>
+
+## Setup
+
+<Steps>
+  <Step title="Install the TTS package">
+    ```bash
+    pip install TTS
+    ```
+    Or with `uv`:
+    ```bash
+    uv add TTS
+    ```
+  </Step>
+  <Step title="List available models (optional)">
+    To see all models available for download:
+    ```bash
+    tts --list_models
+    ```
+  </Step>
+  <Step title="Set tts_model to coqui_tts">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'coqui_tts'
+    ```
+  </Step>
+  <Step title="Configure the engine">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'coqui_tts'
+        coqui_tts:
+          model_name: 'tts_models/en/ljspeech/tacotron2-DDC'
+          speaker_wav: ''
+          language: 'en'
+          device: ''
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+    If the model has not been downloaded yet, Coqui TTS will download it automatically on first run.
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'coqui_tts'
+    coqui_tts:
+      model_name: 'tts_models/en/ljspeech/tacotron2-DDC'
+      speaker_wav: ''
+      language: 'en'
+      device: ''
+```
+
+<ParamField path="model_name" type="string" required>
+  The Coqui TTS model identifier. Run `tts --list_models` to see all available models.
+
+  Common examples:
+  - `tts_models/en/ljspeech/tacotron2-DDC` — English, single speaker (default)
+  - `tts_models/zh-CN/baker/tacotron2-DDC-GST` — Chinese, single speaker
+  - `tts_models/multilingual/multi-dataset/your_tts` — multilingual, multi-speaker with cloning
+  - `tts_models/multilingual/multi-dataset/xtts_v2` — multilingual, high-quality voice cloning
+</ParamField>
+
+<ParamField path="speaker_wav" type="string">
+  Path to a WAV file containing a reference voice for cloning. Only required for multi-speaker models that support voice cloning (e.g., `your_tts`, `xtts_v2`). Leave empty for single-speaker models.
+</ParamField>
+
+<ParamField path="language" type="string" default="en">
+  Language code for synthesis. Only used by multilingual models. For monolingual models, the language is fixed by the model and this setting is ignored.
+
+  Examples: `en`, `zh-cn`, `ja`, `fr`, `de`, `es`.
+</ParamField>
+
+<ParamField path="device" type="string">
+  Device to run inference on. Options: `cuda`, `cpu`, or leave empty for automatic selection (prefers CUDA if available).
+</ParamField>
+
+## Model examples
+
+| Model | Language | Speaker support | Notes |
+|---|---|---|---|
+| `tts_models/en/ljspeech/tacotron2-DDC` | English | Single | Fast, lightweight, English only |
+| `tts_models/zh-CN/baker/tacotron2-DDC-GST` | Chinese | Single | Mandarin Chinese |
+| `tts_models/multilingual/multi-dataset/your_tts` | Multiple | Multi + cloning | Voice cloning via `speaker_wav` |
+| `tts_models/multilingual/multi-dataset/xtts_v2` | Multiple | Multi + cloning | Best quality, requires GPU recommended |
+
+## Voice cloning with XTTS v2
+
+To use voice cloning with `xtts_v2`:
+
+```yaml
+coqui_tts:
+  model_name: 'tts_models/multilingual/multi-dataset/xtts_v2'
+  speaker_wav: '/path/to/reference-voice.wav'
+  language: 'en'
+  device: 'cuda'
+```
+
+<Tip>
+  For `xtts_v2`, provide a 6–10 second clean WAV recording as `speaker_wav`. The model clones the voice characteristics from that file. CUDA is strongly recommended as CPU inference with `xtts_v2` is very slow.
+</Tip>
+
+<Note>
+  Models are downloaded and cached in `~/.local/share/tts/` on Linux and macOS, and `%APPDATA%/tts/` on Windows. The `xtts_v2` model is approximately 1.8 GB.
+</Note>

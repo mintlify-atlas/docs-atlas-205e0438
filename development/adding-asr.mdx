@@ -1,0 +1,137 @@
+---
+title: Adding a New ASR Backend
+description: How to integrate a new Automatic Speech Recognition engine into Open-LLM-VTuber.
+---
+
+ASR backends transcribe raw audio (as a NumPy array) to text. The interface is simple: implement one abstract method, and the framework handles async execution.
+
+## The ASRInterface
+
+All ASR backends implement `ASRInterface` from `src/open_llm_vtuber/asr/asr_interface.py`:
+
+```python
+class ASRInterface(metaclass=abc.ABCMeta):
+    SAMPLE_RATE = 16000
+    NUM_CHANNELS = 1
+    SAMPLE_WIDTH = 2  # bytes (16-bit PCM)
+
+    async def async_transcribe_np(self, audio: np.ndarray) -> str:
+        """
+        Asynchronously transcribe audio. By default, runs transcribe_np in a
+        thread. Override for a native async implementation.
+        """
+        if audio.dtype != np.float32:
+            audio = audio.astype(np.float32)
+        return await asyncio.to_thread(self.transcribe_np, audio)
+
+    @abc.abstractmethod
+    def transcribe_np(self, audio: np.ndarray) -> str:
+        """
+        Transcribe audio from a float32 numpy array at 16 kHz mono.
+
+        Args:
+            audio: float32 numpy array of audio samples.
+
+        Returns:
+            str: The transcription.
+        """
+        raise NotImplementedError
+
+    def nparray_to_audio_file(
+        self, audio: np.ndarray, sample_rate: int, file_path: str
+    ) -> None:
+        """Utility: save a numpy array as a 16-bit PCM WAV file."""
+        ...
+```
+
+<Note>
+  The framework always calls `async_transcribe_np`. The synchronous `transcribe_np` is wrapped in `asyncio.to_thread` by default, so you only need to implement the synchronous version unless your library has native async support.
+</Note>
+
+## Steps to Add a New ASR Backend
+
+<Steps>
+  <Step title="Create the implementation file">
+    Create `src/open_llm_vtuber/asr/my_asr.py`:
+
+    ```python
+    import numpy as np
+    from loguru import logger
+    from .asr_interface import ASRInterface
+
+
+    class VoiceRecognition(ASRInterface):
+        """ASR backend using MyASRLibrary."""
+
+        def __init__(self, model_name: str, language: str = "en", **kwargs):
+            self.model_name = model_name
+            self.language = language
+            # Load your model here
+            logger.info(f"Loading MyASR model: {model_name}")
+            self._model = load_my_model(model_name)
+
+        def transcribe_np(self, audio: np.ndarray) -> str:
+            """
+            audio is float32, 16 kHz, mono.
+            Return the transcription as a string.
+            """
+            result = self._model.transcribe(audio, language=self.language)
+            return result.text.strip()
+    ```
+
+    Follow the naming convention `VoiceRecognition` used by all existing ASR implementations.
+  </Step>
+
+  <Step title="Register in the factory">
+    Open `src/open_llm_vtuber/asr/asr_factory.py` and add a branch in `ASRFactory.get_asr_system`:
+
+    ```python
+    elif system_name == "my_asr":
+        from .my_asr import VoiceRecognition as MyASR
+
+        return MyASR(
+            model_name=kwargs.get("model_name"),
+            language=kwargs.get("language", "en"),
+        )
+    ```
+  </Step>
+
+  <Step title="Add a config class">
+    Open `src/open_llm_vtuber/config_manager/asr.py` and add a Pydantic model:
+
+    ```python
+    class MyASRConfig(BaseModel):
+        model_name: str = "my-default-model"
+        language: str = "en"
+    ```
+
+    Then add `my_asr: Optional[MyASRConfig] = None` to the `ASRConfig` union and update the discriminator.
+  </Step>
+
+  <Step title="Update the default configuration">
+    Add an example block to both default config templates:
+
+    ```yaml
+    asr_config:
+      asr_model: my_asr
+      my_asr:
+        model_name: "my-default-model"
+        language: en
+    ```
+  </Step>
+</Steps>
+
+## Existing Backends for Reference
+
+| Key | Class | Notes |
+|---|---|---|
+| `faster_whisper` | `VoiceRecognition` in `faster_whisper_asr.py` | GPU-accelerated Whisper |
+| `sherpa_onnx_asr` | `VoiceRecognition` in `sherpa_onnx_asr.py` | Fully offline ONNX models |
+| `fun_asr` | `VoiceRecognition` in `fun_asr.py` | Chinese-optimized ASR |
+| `azure_asr` | `VoiceRecognition` in `azure_asr.py` | Azure Cognitive Services |
+| `groq_whisper_asr` | `VoiceRecognition` in `groq_whisper_asr.py` | Groq-hosted Whisper |
+| `whisper` | `VoiceRecognition` in `openai_whisper_asr.py` | Local OpenAI Whisper |
+
+<Warning>
+  Audio arriving from the client is `float32` at **16 kHz mono**. If your model expects a different format, convert inside `transcribe_np`.
+</Warning>

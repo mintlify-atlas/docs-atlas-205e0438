@@ -1,0 +1,133 @@
+---
+title: Basic Memory Agent
+description: The default agent for Open LLM VTuber. Uses in-context conversation history with any supported LLM provider, plus optional MCP tool use.
+---
+
+The Basic Memory Agent is the default agent and the simplest way to get started. It keeps the full conversation history in the LLM context window for the duration of a session. When the session ends the in-memory history is discarded, although chat history is still saved to disk so you can review past conversations.
+
+<Note>
+  This is the agent that runs when you first install Open LLM VTuber. No external services are required.
+</Note>
+
+## Configuration
+
+The relevant section of `conf.yaml` (nested inside `character_config.agent_config`):
+
+```yaml
+agent_config:
+  conversation_agent_choice: 'basic_memory_agent'
+
+  agent_settings:
+    basic_memory_agent:
+      llm_provider: 'ollama_llm'
+      faster_first_response: True
+      segment_method: 'pysbd'
+      use_mcpp: True
+      mcp_enabled_servers: ["time", "ddg-search"]
+```
+
+### Parameters
+
+<ParamField path="llm_provider" type="string" required>
+  Which entry from `llm_configs` to use as the language model backend. Must exactly match a key defined under `agent_config.llm_configs`.
+
+  Supported values: `ollama_llm`, `openai_compatible_llm`, `openai_llm`, `claude_llm`, `gemini_llm`, `deepseek_llm`, `groq_llm`, `mistral_llm`, `zhipu_llm`, `lmstudio_llm`, `llama_cpp_llm`, `stateless_llm_with_template`.
+</ParamField>
+
+<ParamField path="faster_first_response" type="boolean" default="true">
+  When `true`, TTS synthesis starts as soon as the first comma or sentence-ending punctuation is encountered in the LLM stream. This reduces perceived latency because audio playback begins before the full first sentence is generated.
+
+  Set to `false` if your LLM tends to produce very short first fragments that sound unnatural.
+</ParamField>
+
+<ParamField path="segment_method" type="string" default="pysbd">
+  How the token stream is split into sentences before being handed to TTS.
+
+  - `pysbd` — uses the [pysbd](https://github.com/nipunsadvilkar/pySBD) sentence boundary detection library. More accurate across languages.
+  - `regex` — simple punctuation-based splitting with a regular expression. Faster and dependency-free.
+</ParamField>
+
+<ParamField path="use_mcpp" type="boolean" default="false">
+  Enables MCP (Model Context Protocol) tool use. When `true`, the agent can call external tools (web search, time, custom servers, etc.) defined in `mcp_servers.json`.
+
+  Requires the LLM to support tool/function calling (OpenAI-compatible or Claude API). If the LLM does not support native tool calling, the agent automatically falls back to a prompt-based mode.
+</ParamField>
+
+<ParamField path="mcp_enabled_servers" type="string[]" default="[]">
+  List of MCP server names to activate from `mcp_servers.json`. Only the servers listed here will be available to the agent.
+
+  Example: `["time", "ddg-search"]` enables the built-in time and DuckDuckGo search servers.
+</ParamField>
+
+## Switching the LLM
+
+Change `llm_provider` to the key of any entry in the `llm_configs` block, then verify that the corresponding config block has the correct credentials and model name.
+
+<Steps>
+  <Step title="Pick an LLM provider">
+    Decide which LLM you want to use. Every supported provider has a configuration block under `agent_config.llm_configs`.
+  </Step>
+  <Step title="Configure the provider block">
+    Fill in the credentials and model name for that provider. For example, to use OpenAI:
+
+    ```yaml
+    llm_configs:
+      openai_llm:
+        llm_api_key: 'sk-...'
+        model: 'gpt-4o'
+        temperature: 1.0
+    ```
+  </Step>
+  <Step title="Set llm_provider">
+    Update `basic_memory_agent.llm_provider` to match:
+
+    ```yaml
+    basic_memory_agent:
+      llm_provider: 'openai_llm'
+    ```
+  </Step>
+  <Step title="Restart the server">
+    Save `conf.yaml` and restart with `uv run run_server.py`. The new LLM is now active.
+  </Step>
+</Steps>
+
+## Enabling MCP tools
+
+<Steps>
+  <Step title="Enable use_mcpp">
+    Set `use_mcpp: True` in the `basic_memory_agent` block.
+  </Step>
+  <Step title="Configure mcp_enabled_servers">
+    List the server names you want available:
+
+    ```yaml
+    mcp_enabled_servers: ["time", "ddg-search"]
+    ```
+  </Step>
+  <Step title="Verify mcp_servers.json">
+    Open `mcp_servers.json` in the project root and confirm the server names match entries in that file.
+  </Step>
+  <Step title="Enable the MCP prompt">
+    Uncomment `mcp_prompt` in `system_config.tool_prompts` so the LLM knows it has tools available:
+
+    ```yaml
+    system_config:
+      tool_prompts:
+        mcp_prompt: 'mcp_prompt'
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  `use_mcpp` requires an OpenAI-compatible or Claude API LLM. Local models served through Ollama or LM Studio may not support native function calling. The agent will fall back to prompt mode automatically, but results may be less reliable.
+</Warning>
+
+## Memory behaviour
+
+The Basic Memory Agent holds the entire conversation in a Python list in memory. This means:
+
+- Memory is **lost when the server restarts** or when a new conversation session begins.
+- Very long conversations will eventually exceed the LLM's context window and cause errors.
+- Chat history is written to disk (in `chat_history/`) and can be reloaded, but the in-context memory is rebuilt from that file on reconnection.
+
+If you need memory that persists across sessions without reloading, consider the [Mem0 Agent](/user-guide/agents/mem0) or the [Letta Agent](/user-guide/agents/letta).

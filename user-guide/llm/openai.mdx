@@ -1,0 +1,72 @@
+---
+title: OpenAI
+description: Connect Open LLM VTuber to the official OpenAI API (GPT-4o, GPT-4 Turbo, and other OpenAI models).
+---
+
+The `openai_llm` backend connects directly to OpenAI's hosted API. Use this when you want access to GPT-4o, GPT-4 Turbo, or other OpenAI-hosted models without running any local software.
+
+## When to use OpenAI
+
+- You have an OpenAI API key and want to use GPT-4o or similar models
+- You need high-quality responses and do not want to run local hardware
+- You are comfortable with per-token API costs
+
+## Prerequisites
+
+<Steps>
+  <Step title="Create an OpenAI account">
+    Sign up at [platform.openai.com](https://platform.openai.com) and add a payment method.
+  </Step>
+  <Step title="Generate an API key">
+    Go to **API keys** in your OpenAI dashboard and create a new secret key. Copy it — you will not be able to see it again.
+  </Step>
+  <Step title="Add the key to conf.yaml">
+    Replace `'Your Open AI API key'` in the config with your actual key.
+  </Step>
+</Steps>
+
+## Configuration
+
+<CodeGroup>
+
+```yaml conf.yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        llm_provider: 'openai_llm'
+
+    llm_configs:
+      openai_llm:
+        llm_api_key: 'Your Open AI API key'
+        model: 'gpt-4o'
+        temperature: 1.0
+```
+
+</CodeGroup>
+
+## Parameters
+
+<ParamField path="llm_api_key" type="string" required>
+  Your OpenAI API secret key. Keep this out of version control.
+</ParamField>
+
+<ParamField path="model" type="string" required default="gpt-4o">
+  The OpenAI model to use. Common options:
+  - `gpt-4o` — fastest and most capable multimodal model
+  - `gpt-4o-mini` — lower cost, good for most conversations
+  - `gpt-4-turbo` — high capability with a large context window
+  - `gpt-3.5-turbo` — lowest cost option
+</ParamField>
+
+<ParamField path="temperature" type="number" default="1.0">
+  Sampling temperature between 0 and 2. Lower values produce more focused, deterministic output. Higher values produce more varied responses. OpenAI recommends values between 0 and 1 for most use cases.
+</ParamField>
+
+<Warning>
+Never commit your API key to a public repository. If your key is compromised, revoke it immediately from the OpenAI dashboard.
+</Warning>
+
+<Tip>
+`gpt-4o-mini` is significantly cheaper than `gpt-4o` and performs well for real-time conversation. It is a good starting point if you are cost-conscious.
+</Tip>

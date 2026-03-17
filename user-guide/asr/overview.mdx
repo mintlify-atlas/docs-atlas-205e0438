@@ -1,0 +1,66 @@
+---
+title: "Speech Recognition (ASR)"
+description: "Overview of the Automatic Speech Recognition engines supported by Open LLM VTuber."
+---
+
+Automatic Speech Recognition (ASR) converts your voice into text that the AI can process. When you speak, the audio is first passed through Voice Activity Detection (VAD) to identify when speech starts and ends. The detected audio segment is then handed off to the ASR engine, which transcribes it into text for the LLM.
+
+## How it works with VAD
+
+Open LLM VTuber uses a two-stage pipeline for voice input:
+
+1. **VAD** continuously monitors the microphone and detects speech boundaries.
+2. **ASR** receives the captured audio segment and returns a transcript.
+
+This separation means you can mix and match VAD and ASR engines independently. VAD is configured under `vad_config`; ASR is configured under `asr_config`.
+
+## Selecting an ASR engine
+
+ASR is configured inside `character_config.asr_config` in your `conf.yaml`. The `asr_model` key selects which engine to use, and the engine-specific settings live under a key matching that name.
+
+```yaml
+character_config:
+  asr_config:
+    asr_model: 'sherpa_onnx_asr'   # engine selector
+    sherpa_onnx_asr:
+      model_type: 'sense_voice'
+      # ... engine-specific settings
+```
+
+Valid values for `asr_model`:
+
+| Value | Engine page |
+|---|---|
+| `sherpa_onnx_asr` | [Sherpa-ONNX](/user-guide/asr/sherpa-onnx) |
+| `faster_whisper` | [Faster Whisper](/user-guide/asr/faster-whisper) |
+| `whisper_cpp` | [Whisper.cpp](/user-guide/asr/whisper-cpp) |
+| `fun_asr` | [FunASR](/user-guide/asr/fun-asr) |
+| `azure_asr` | [Azure Speech Services](/user-guide/asr/azure-asr) |
+| `groq_whisper_asr` | [Groq Whisper](/user-guide/asr/groq-whisper) |
+
+## Engine comparison
+
+| Engine | Offline | Languages | Notes |
+|---|---|---|---|
+| **Sherpa-ONNX** (default) | Yes | zh, en, ja, ko, yue + more | SenseVoice model auto-downloads. Best all-round offline choice. |
+| **Faster Whisper** | Yes | 90+ (Whisper languages) | GPU-accelerated, good accuracy. Requires CUDA for best performance. |
+| **Whisper.cpp** | Yes | 90+ (Whisper languages) | CPU-friendly C++ backend. No Python dependency on PyTorch. |
+| **FunASR** | Mostly* | zh, en, auto | Requires internet on first launch to download models. |
+| **Azure Speech** | No | 100+ | Cloud service. Requires Azure subscription and API key. |
+| **Groq Whisper** | No | 90+ (Whisper languages) | Cloud API. Very fast inference via Groq hardware. |
+
+\* FunASR needs internet access on first launch to download models. After that it runs offline.
+
+## Recommendations
+
+<Tip>
+  **Offline use**: Start with `sherpa_onnx_asr` (the default). The SenseVoice model downloads automatically on first run and supports Chinese, English, Japanese, Korean, and Cantonese.
+</Tip>
+
+<Tip>
+  **Cloud / lowest latency**: Use `groq_whisper_asr`. Groq's dedicated inference hardware makes it significantly faster than running Whisper locally on CPU.
+</Tip>
+
+<Note>
+  All ASR engines expect 16 kHz mono audio. This is handled automatically by the VAD pipeline — you do not need to configure audio formats manually.
+</Note>

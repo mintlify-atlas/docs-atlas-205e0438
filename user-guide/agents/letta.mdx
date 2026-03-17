@@ -1,0 +1,97 @@
+---
+title: Letta Agent
+description: Connect Open LLM VTuber to a Letta server for persistent long-term memory backed by vector storage.
+---
+
+[Letta](https://www.letta.com) (formerly MemGPT) is an open-source framework that gives LLMs persistent memory by storing conversation history and extracted facts in a vector database. The Letta Agent delegates all conversation management to an external Letta server — Open LLM VTuber connects to it over HTTP and streams responses back.
+
+**When to use this agent:**
+- You want the character to remember facts, preferences, and past conversations across multiple sessions.
+- You are comfortable running and maintaining a separate Letta server process.
+- You want the LLM backend to be configured and swapped on the Letta server side rather than in `conf.yaml`.
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install and start the Letta server">
+    Follow the [Letta documentation](https://docs.letta.com) to install and start the server. By default it listens on `localhost:8283`.
+
+    ```bash
+    pip install letta
+    letta server
+    ```
+  </Step>
+  <Step title="Create an agent on the Letta server">
+    Use the Letta web UI or CLI to create a new agent. Configure the LLM, persona, and memory settings there. After creation, copy the agent's **ID** — you will need it in the next step.
+  </Step>
+  <Step title="Configure Open LLM VTuber">
+    Set `conversation_agent_choice` to `letta_agent` and fill in the `letta_agent` settings block with the host, port, and agent ID.
+  </Step>
+  <Step title="Restart the server">
+    Save `conf.yaml` and run `uv run run_server.py`.
+  </Step>
+</Steps>
+
+## Configuration
+
+```yaml
+agent_config:
+  conversation_agent_choice: 'letta_agent'
+
+  agent_settings:
+    letta_agent:
+      host: 'localhost'
+      port: 8283
+      id: 'agent-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+      faster_first_response: True
+      segment_method: 'pysbd'
+```
+
+### Parameters
+
+<ParamField path="host" type="string" default="localhost">
+  Hostname or IP address of the running Letta server. Change to a remote hostname if your Letta server runs on a different machine.
+</ParamField>
+
+<ParamField path="port" type="integer" default="8283">
+  Port the Letta server is listening on. The default Letta port is `8283`.
+</ParamField>
+
+<ParamField path="id" type="string" required>
+  The agent instance ID from the Letta server. Obtain this after creating an agent through the Letta web UI or `letta` CLI. It typically looks like `agent-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
+</ParamField>
+
+<ParamField path="faster_first_response" type="boolean" default="true">
+  When `true`, TTS synthesis starts as soon as the first punctuation boundary is detected in the streamed response. Reduces perceived latency.
+</ParamField>
+
+<ParamField path="segment_method" type="string" default="pysbd">
+  Sentence segmentation method applied to the Letta response stream before TTS.
+
+  - `pysbd` — accurate multi-language sentence boundary detection.
+  - `regex` — lightweight punctuation-based splitting.
+</ParamField>
+
+<Note>
+  The LLM that powers the conversation is configured entirely on the Letta server side. The `llm_configs` block in `conf.yaml` is not used by the Letta agent. Change the model in the Letta web UI or its configuration files.
+</Note>
+
+## Memory behaviour
+
+Letta stores all messages and extracted memories in its own database. This means:
+
+- **Memory persists across restarts** of both Open LLM VTuber and the Letta server (as long as the Letta database is intact).
+- The `set_memory_from_history` method is a no-op for this agent — Letta manages history itself.
+- Interrupt handling is not implemented; the agent does not inject an `[Interrupted by user]` signal.
+
+<Warning>
+  If the Letta server is unreachable when Open LLM VTuber starts a conversation, the request will fail. Make sure the Letta server is running before launching Open LLM VTuber.
+</Warning>
+
+## Troubleshooting
+
+| Problem | Likely cause | Fix |
+|---|---|---|
+| `Connection refused` on startup | Letta server not running | Start the Letta server before Open LLM VTuber |
+| `Agent not found` error | Wrong `id` value | Copy the exact agent ID from the Letta UI |
+| No response streamed | Agent ID belongs to a different Letta workspace | Verify the agent exists on the configured host/port |

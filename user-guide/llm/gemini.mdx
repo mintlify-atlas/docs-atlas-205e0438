@@ -1,0 +1,72 @@
+---
+title: Google Gemini
+description: Connect Open LLM VTuber to Google's Gemini models via the Gemini API.
+---
+
+The `gemini_llm` backend connects to Google's Gemini API using an OpenAI-compatible endpoint. This gives you access to Gemini Flash and Pro models.
+
+## When to use Gemini
+
+- You have a Google AI Studio API key (which has a free tier)
+- You want fast responses at low cost with `gemini-2.0-flash-exp`
+- You are already using Google Cloud infrastructure
+
+## Prerequisites
+
+<Steps>
+  <Step title="Get a Gemini API key">
+    Go to [aistudio.google.com](https://aistudio.google.com) and click **Get API key**. Free-tier keys are available without a billing account.
+  </Step>
+  <Step title="Add the key to conf.yaml">
+    Replace `'Your Gemini API Key'` in the config with your actual key.
+  </Step>
+</Steps>
+
+## Configuration
+
+<CodeGroup>
+
+```yaml conf.yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        llm_provider: 'gemini_llm'
+
+    llm_configs:
+      gemini_llm:
+        llm_api_key: 'Your Gemini API Key'
+        model: 'gemini-2.0-flash-exp'
+        temperature: 1.0
+```
+
+</CodeGroup>
+
+## Parameters
+
+<ParamField path="llm_api_key" type="string" required>
+  Your Google AI Studio or Google Cloud API key.
+</ParamField>
+
+<ParamField path="model" type="string" required default="gemini-2.0-flash-exp">
+  The Gemini model to use. Common options:
+  - `gemini-2.0-flash-exp` — fast, experimental next-generation model (default)
+  - `gemini-1.5-flash` — fast and cost-efficient
+  - `gemini-1.5-pro` — higher capability with a 1M token context window
+</ParamField>
+
+<ParamField path="temperature" type="number" default="1.0">
+  Sampling temperature between 0 and 2. Lower values produce more focused output; higher values produce more varied responses.
+</ParamField>
+
+<Note>
+Open LLM VTuber accesses Gemini through Google's OpenAI-compatible endpoint at `https://generativelanguage.googleapis.com/v1beta/openai/`. You do not need to set `base_url` — it is handled automatically.
+</Note>
+
+<Note>
+The `interrupt_method` for Gemini is set to `"user"` because the Gemini API does not support system messages at arbitrary positions in the conversation history.
+</Note>
+
+<Tip>
+`gemini-2.0-flash-exp` is free within Google AI Studio's rate limits and offers excellent speed for real-time conversation. It is a strong choice for users who want cloud quality without spending money.
+</Tip>

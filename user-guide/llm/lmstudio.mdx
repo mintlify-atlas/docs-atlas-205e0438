@@ -1,0 +1,77 @@
+---
+title: LM Studio
+description: Run local LLMs with LM Studio and connect Open LLM VTuber to its built-in API server.
+---
+
+LM Studio is a desktop application for running local LLMs with a graphical interface. It includes a built-in OpenAI-compatible API server that Open LLM VTuber can connect to.
+
+## When to use LM Studio
+
+- You prefer a GUI for downloading and managing local models
+- You want an easy way to experiment with different models without using the command line
+- You are already using LM Studio and want to connect it to Open LLM VTuber
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install LM Studio">
+    Download LM Studio from [lmstudio.ai](https://lmstudio.ai) and install it on your machine. It is available for macOS, Windows, and Linux.
+  </Step>
+  <Step title="Download a model">
+    Open LM Studio, go to the **Discover** tab, and search for a model. Recommended starting points:
+    - `Qwen2.5-7B-Instruct` (GGUF)
+    - `Llama-3.2-3B-Instruct` (GGUF)
+  </Step>
+  <Step title="Start the local server">
+    In LM Studio, go to the **Developer** tab (or **Local Server** tab depending on your version), load a model, and click **Start Server**. The server starts on port `1234` by default.
+  </Step>
+  <Step title="Configure conf.yaml">
+    Set `llm_provider` to `lmstudio_llm` and set the `model` field to the model identifier shown in LM Studio.
+  </Step>
+</Steps>
+
+## Configuration
+
+<CodeGroup>
+
+```yaml conf.yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        llm_provider: 'lmstudio_llm'
+
+    llm_configs:
+      lmstudio_llm:
+        base_url: 'http://localhost:1234/v1'
+        model: 'qwen2.5:latest'
+        temperature: 1.0
+```
+
+</CodeGroup>
+
+## Parameters
+
+<ParamField path="base_url" type="string" default="http://localhost:1234/v1">
+  The base URL of the LM Studio API server. The default port is `1234`. Change this if you configured a different port in LM Studio.
+</ParamField>
+
+<ParamField path="model" type="string" required default="qwen2.5:latest">
+  The model identifier as shown in LM Studio. This should match the model name displayed in the LM Studio interface when the server is running.
+</ParamField>
+
+<ParamField path="temperature" type="number" default="1.0">
+  Sampling temperature between 0 and 2. Lower values produce more focused output; higher values produce more varied responses.
+</ParamField>
+
+<Note>
+LM Studio does not require an API key. Open LLM VTuber uses a default placeholder key internally and does not need one configured.
+</Note>
+
+<Warning>
+The LM Studio server must be running with a model loaded before you start Open LLM VTuber. If the server is not running, the AI will fail to respond.
+</Warning>
+
+<Tip>
+In LM Studio, the model identifier shown in the server status panel is what you should use for the `model` field in `conf.yaml`. It may differ from the file name of the GGUF file.
+</Tip>

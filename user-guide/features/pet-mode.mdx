@@ -1,0 +1,70 @@
+---
+title: "Pet Mode"
+description: "Run your AI character as a transparent, always-on-top desktop pet."
+---
+
+Pet mode turns your AI character into a floating desktop companion. The window has a transparent background, stays on top of all other applications, and passes mouse clicks through to whatever is beneath it — so you can interact with your computer normally while the character is always visible.
+
+<Note>
+  Pet mode is only available in the **desktop client**. It is not available in the browser-based web UI. Download the desktop client from the project's releases page.
+</Note>
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Transparent background" icon="image">
+    Only the Live2D model is visible. The window chrome and background are fully transparent.
+  </Card>
+  <Card title="Always on top" icon="layer-group">
+    The window floats above all other applications, including full-screen windows.
+  </Card>
+  <Card title="Click-through" icon="arrow-pointer">
+    Mouse clicks pass through the transparent areas of the window to applications below.
+  </Card>
+  <Card title="Draggable" icon="up-down-left-right">
+    Drag the character anywhere on your screen by clicking and dragging the model itself.
+  </Card>
+</CardGroup>
+
+## Switching to pet mode
+
+<Steps>
+  <Step title="Open the desktop client">
+    Launch the Open-LLM-VTuber desktop application. The character will appear in the normal windowed view by default.
+  </Step>
+
+  <Step title="Open settings">
+    Click the settings icon in the toolbar or use the keyboard shortcut to open the settings panel.
+  </Step>
+
+  <Step title="Enable pet mode">
+    Toggle the **Pet Mode** switch. The window will immediately switch to a transparent, borderless overlay.
+  </Step>
+
+  <Step title="Position the character">
+    Drag the character to your preferred location on screen. The position is remembered between sessions.
+  </Step>
+</Steps>
+
+## Platform support
+
+| Platform | Status |
+|---|---|
+| Windows | Supported |
+| macOS | Supported |
+| Linux | Supported (compositor required for transparency) |
+| Browser (web) | Not supported |
+
+<Warning>
+  On Linux, window transparency requires a compositing window manager (e.g., Picom, KWin, or Mutter). Without a compositor, the transparent areas may appear black.
+</Warning>
+
+## Tips
+
+<Tip>
+  Resize the window before switching to pet mode. In pet mode, the window boundary matches the canvas, so the character fills the entire window area. A smaller window keeps the character from blocking too much of your screen.
+</Tip>
+
+<Tip>
+  You can still use all voice interaction features in pet mode. The character will respond, animate, and express emotions exactly as in the normal windowed view.
+</Tip>

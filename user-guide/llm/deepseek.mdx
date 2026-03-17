@@ -1,0 +1,70 @@
+---
+title: DeepSeek
+description: Connect Open LLM VTuber to DeepSeek's hosted API for cost-effective cloud inference.
+---
+
+The `deepseek_llm` backend connects to DeepSeek's cloud API. DeepSeek offers competitive models at low cost, making it a good option for users who want cloud inference on a budget.
+
+## When to use DeepSeek
+
+- You want cloud-hosted inference at a lower cost than OpenAI or Anthropic
+- You are located in a region where DeepSeek's API has low latency
+- You want to use DeepSeek-specific models like `deepseek-reasoner`
+
+## Prerequisites
+
+<Steps>
+  <Step title="Create a DeepSeek account">
+    Sign up at [platform.deepseek.com](https://platform.deepseek.com) and add credits to your account.
+  </Step>
+  <Step title="Generate an API key">
+    Go to **API keys** in the DeepSeek dashboard and create a new key.
+  </Step>
+  <Step title="Add the key to conf.yaml">
+    Replace `'Your DeepSeek API key'` in the config with your actual key.
+  </Step>
+</Steps>
+
+## Configuration
+
+<CodeGroup>
+
+```yaml conf.yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        llm_provider: 'deepseek_llm'
+
+    llm_configs:
+      deepseek_llm:
+        llm_api_key: 'Your DeepSeek API key'
+        model: 'deepseek-chat'
+        temperature: 0.7
+```
+
+</CodeGroup>
+
+## Parameters
+
+<ParamField path="llm_api_key" type="string" required>
+  Your DeepSeek API key.
+</ParamField>
+
+<ParamField path="model" type="string" required default="deepseek-chat">
+  The DeepSeek model to use. Common options:
+  - `deepseek-chat` — general-purpose conversational model
+  - `deepseek-reasoner` — chain-of-thought reasoning model
+</ParamField>
+
+<ParamField path="temperature" type="number" default="0.7">
+  Sampling temperature. **Note:** DeepSeek's temperature range is 0 to 1, not 0 to 2 like most other providers. Values above 1 are not recommended.
+</ParamField>
+
+<Warning>
+DeepSeek's `temperature` parameter ranges from **0 to 1**, unlike most other providers where the range is 0 to 2. The default value of `0.7` is already set appropriately. Avoid setting values above 1.
+</Warning>
+
+<Note>
+Open LLM VTuber connects to DeepSeek via `https://api.deepseek.com/v1`. You do not need to set `base_url` — it is configured automatically.
+</Note>

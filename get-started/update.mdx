@@ -1,0 +1,83 @@
+---
+title: How to update
+description: Keep your Open-LLM-VTuber installation up to date using the built-in upgrade script.
+---
+
+## Standard update (v1.0.0 and later)
+
+For any version at or after `v1.0.0`, use the built-in upgrade script:
+
+```bash
+uv run upgrade.py
+```
+
+The script performs the following steps:
+
+1. Checks that git is installed and the directory is a git repository.
+2. Stashes any uncommitted local changes.
+3. Fetches and pulls the latest changes from the remote.
+4. Updates all git submodules (including the frontend).
+5. Syncs your `conf.yaml` with any new configuration keys added in the update.
+6. Restores your stashed local changes.
+
+The script is interactive — it will show you a preview of the operation and ask for confirmation before proceeding.
+
+<Note>
+After updating, check the release notes for any breaking changes that require manual config edits. The upgrade script syncs new keys into your `conf.yaml` but cannot resolve every possible conflict automatically.
+</Note>
+
+## What happens to conf.yaml
+
+The upgrade script calls `sync_user_config`, which adds any new configuration keys from `config_templates/conf.default.yaml` into your `conf.yaml`. Your existing values are preserved. New keys are added with their default values.
+
+## Updating Python dependencies
+
+After pulling new changes that modify `pyproject.toml` or `uv.lock`, re-run:
+
+```bash
+uv sync
+```
+
+This is done automatically when you start the server with `uv run run_server.py`, but you can also run it manually.
+
+## Upgrading from before v1.0.0
+
+<Warning>
+`v1.0.0` introduced breaking changes to the configuration format and dependencies. If you are upgrading from a version before `v1.0.0`, a fresh deployment is recommended. Your old `conf.yaml` is not compatible.
+</Warning>
+
+To do a fresh deployment:
+
+1. Back up any files you want to keep (`conf.yaml`, `chat_history/`, custom `characters/` files, custom Live2D models).
+2. Delete or rename the old project directory.
+3. Follow the [quick start guide](/get-started/quick-start) to clone and configure a fresh copy.
+4. Manually copy your backed-up `characters/` and `chat_history/` directories into the new installation.
+5. Re-create your `conf.yaml` from `config_templates/conf.default.yaml`.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The script says the repository is ahead of remote">
+    This means you have local commits that have not been pushed. The upgrade script will not proceed in this state to avoid overwriting your work. Push or remove your local commits before running `uv run upgrade.py`.
+  </Accordion>
+
+  <Accordion title="Merge conflicts after update">
+    If the script reports conflicts when restoring your stashed changes, resolve them manually:
+
+    ```bash
+    git stash list     # see your stashed changes
+    git stash pop      # attempt to restore
+    # resolve conflicts in your editor
+    git add .
+    git stash drop     # clean up the stash after resolving
+    ```
+  </Accordion>
+
+  <Accordion title="Frontend shows a 'Not Found' error after update">
+    The frontend is a git submodule. If it is missing or out of date, re-initialize it:
+
+    ```bash
+    git submodule update --init --recursive
+    ```
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,58 @@
+---
+title: Introduction
+description: Open-LLM-VTuber is a voice-interactive AI companion with a Live2D avatar that runs completely offline on your computer.
+---
+
+**Open-LLM-VTuber** is a cross-platform, offline-first AI companion that combines real-time voice conversation, visual perception, and an animated Live2D avatar. All functionality can run locally on your machine — no cloud subscription required.
+
+You can shape it into whatever companion you want: a virtual friend, a debate partner, a character from fiction, or anything else. The persona, voice, and appearance are all configurable.
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/get-started/quick-start">
+    Install and run Open-LLM-VTuber in minutes.
+  </Card>
+  <Card title="Features" icon="list" href="/features">
+    See the full list of capabilities.
+  </Card>
+  <Card title="Configuration overview" icon="sliders" href="/get-started/configuration-overview">
+    Understand how conf.yaml controls the system.
+  </Card>
+  <Card title="Character config" icon="user" href="/get-started/character-config">
+    Create and manage multiple character personas.
+  </Card>
+</CardGroup>
+
+## What it does
+
+Open-LLM-VTuber connects three types of AI components to create a real-time conversational experience:
+
+- **LLM (Large Language Model)** — processes your messages and generates responses. Supports Ollama, OpenAI, Gemini, Claude, DeepSeek, and many more.
+- **ASR (Automatic Speech Recognition)** — converts your voice to text. Supports sherpa-onnx, Faster-Whisper, FunASR, Azure ASR, and others.
+- **TTS (Text-to-Speech)** — converts the LLM response back to audio. Supports Edge TTS, MeloTTS, GPT-SoVITS, CosyVoice, Fish Audio, and others.
+
+All three components are swappable through configuration — no code changes required.
+
+## Design philosophy
+
+- **Offline-first**: The default configuration uses locally-running models. Nothing leaves your machine unless you choose a cloud provider.
+- **Modular**: Switch LLM, ASR, or TTS backends by changing a single line in `conf.yaml`.
+- **Cross-platform**: Runs on Windows, macOS (including Apple Silicon), and Linux. Supports NVIDIA CUDA, Apple MPS, and CPU fallback.
+
+## Platform support
+
+| Platform | GPU acceleration |
+|---|---|
+| Windows | NVIDIA CUDA, CPU |
+| macOS (Intel) | CPU |
+| macOS (Apple Silicon) | Apple MPS, CPU |
+| Linux | NVIDIA CUDA, CPU |
+
+## Community
+
+- **Discord**: [discord.gg/3UDA8YFDXx](https://discord.gg/3UDA8YFDXx)
+- **Zulip (developer community)**: [olv.zulipchat.com](https://olv.zulipchat.com)
+- **QQ user group**: 792615362
+
+<Note>
+Open-LLM-VTuber is under active development. v2.0 is currently in early planning. Bug fixes continue for v1. Join the Zulip community to follow v2 discussions.
+</Note>

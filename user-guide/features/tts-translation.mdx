@@ -1,0 +1,128 @@
+---
+title: "TTS Translation"
+description: "Have the AI respond in one language while its voice speaks in another."
+---
+
+TTS translation lets the AI's text response stay in its original language (e.g., English) while the voice output is synthesized in a different language (e.g., Japanese). This is useful for streamers or users who want a Japanese-voiced character that still communicates in English text.
+
+## How it works
+
+Before sending text to the TTS engine, the `tts_preprocessor` optionally passes the text through a translation service. The translated text is what gets synthesized; the original text is still shown in the UI.
+
+## Configuration
+
+Translation is configured in `tts_preprocessor_config.translator_config`:
+
+```yaml
+tts_preprocessor_config:
+  remove_special_char: True
+  ignore_brackets: True
+  ignore_parentheses: True
+  ignore_asterisks: True
+  ignore_angle_brackets: True
+
+  translator_config:
+    translate_audio: False   # Set to True to enable translation
+    translate_provider: 'deeplx'  # 'deeplx' or 'tencent'
+
+    deeplx:
+      deeplx_target_lang: 'JA'
+      deeplx_api_endpoint: 'http://localhost:1188/v2/translate'
+
+    tencent:
+      secret_id: ''
+      secret_key: ''
+      region: 'ap-guangzhou'
+      source_lang: 'zh'
+      target_lang: 'ja'
+```
+
+Set `translate_audio: True` to enable translation.
+
+## DeepLX (recommended)
+
+DeepLX is a free, self-hosted reverse proxy for the DeepL translation API. It requires no API key.
+
+<Steps>
+  <Step title="Install and start DeepLX">
+    Follow the [DeepLX](https://github.com/OwO-Network/DeepLX) setup guide. The default endpoint is `http://localhost:1188/v2/translate`.
+  </Step>
+
+  <Step title="Configure conf.yaml">
+    ```yaml
+    translator_config:
+      translate_audio: True
+      translate_provider: 'deeplx'
+
+      deeplx:
+        deeplx_target_lang: 'JA'
+        deeplx_api_endpoint: 'http://localhost:1188/v2/translate'
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  If `translate_audio` is set to `True` but DeepLX is not running, the application will crash when the TTS preprocessor tries to call the translation endpoint. Start DeepLX before starting the server.
+</Warning>
+
+## Tencent translation
+
+Tencent Cloud Machine Translation is a paid API with a free tier (5 million characters per month).
+
+<Steps>
+  <Step title="Create a Tencent Cloud account">
+    Go to the [Tencent Cloud Machine Translation console](https://console.cloud.tencent.com/cam/capi) and create an API key pair (`secret_id` and `secret_key`).
+  </Step>
+
+  <Step title="Configure conf.yaml">
+    ```yaml
+    translator_config:
+      translate_audio: True
+      translate_provider: 'tencent'
+
+      tencent:
+        secret_id: 'your-secret-id'
+        secret_key: 'your-secret-key'
+        region: 'ap-guangzhou'
+        source_lang: 'zh'
+        target_lang: 'ja'
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Tencent Machine Translation has post-payment billing enabled by default. Go to **Machine Translation Console → System Settings** and disable post-payment to avoid unexpected charges after exceeding the free tier.
+</Warning>
+
+## Language codes
+
+<Tabs>
+  <Tab title="DeepLX target languages">
+    | Code | Language |
+    |---|---|
+    | `JA` | Japanese |
+    | `ZH` | Chinese (Simplified) |
+    | `EN` | English |
+    | `KO` | Korean |
+    | `FR` | French |
+    | `DE` | German |
+    | `ES` | Spanish |
+    | `RU` | Russian |
+
+    For the full list, see the [DeepL language codes](https://developers.deepl.com/docs/resources/supported-languages) documentation.
+  </Tab>
+  <Tab title="Tencent language codes">
+    | Code | Language |
+    |---|---|
+    | `zh` | Chinese (Simplified) |
+    | `en` | English |
+    | `ja` | Japanese |
+    | `ko` | Korean |
+    | `fr` | French |
+    | `de` | German |
+    | `es` | Spanish |
+    | `ru` | Russian |
+
+    For the full list, see the [Tencent Machine Translation language list](https://cloud.tencent.com/document/product/551/35017).
+  </Tab>
+</Tabs>

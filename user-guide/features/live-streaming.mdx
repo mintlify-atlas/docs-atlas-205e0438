@@ -1,0 +1,100 @@
+---
+title: "Live Streaming (Bilibili)"
+description: "Connect your AI VTuber to a Bilibili live room and interact with viewers."
+---
+
+Open-LLM-VTuber can connect to a Bilibili live room and read incoming chat messages, allowing the AI to interact with viewers in real time during a live stream.
+
+## Installing the Bilibili extra
+
+Bilibili live integration requires additional dependencies. Install them with:
+
+```bash
+uv sync --extra bilibili
+```
+
+## Configuration
+
+Bilibili live settings are in the `live_config` section of `conf.yaml`:
+
+```yaml
+live_config:
+  bilibili_live:
+    room_ids: [1991478060]  # List of live room IDs to monitor
+    sessdata: ""             # SESSDATA cookie value (optional)
+```
+
+### room_ids
+
+The `room_ids` list accepts one or more Bilibili live room IDs (integers). You can find the room ID in the URL of the live room: `live.bilibili.com/<room_id>`.
+
+To monitor multiple rooms simultaneously, add more IDs to the list:
+
+```yaml
+live_config:
+  bilibili_live:
+    room_ids: [1991478060, 123456789]
+    sessdata: ""
+```
+
+### sessdata
+
+`sessdata` is an optional authentication cookie from your Bilibili account. Providing it enables authenticated requests, which:
+
+- Allows reading messages from rooms that require a logged-in account to view
+- May reduce rate-limiting on chat message polling
+
+To get your `sessdata`:
+
+<Steps>
+  <Step title="Log in to Bilibili">
+    Open [bilibili.com](https://www.bilibili.com) in your browser and log in.
+  </Step>
+
+  <Step title="Open browser developer tools">
+    Press `F12` (or right-click → Inspect) to open developer tools.
+  </Step>
+
+  <Step title="Find the SESSDATA cookie">
+    Go to **Application** (Chrome) or **Storage** (Firefox) → **Cookies** → `https://www.bilibili.com`. Find the cookie named `SESSDATA` and copy its value.
+  </Step>
+
+  <Step title="Paste into conf.yaml">
+    ```yaml
+    live_config:
+      bilibili_live:
+        room_ids: [1991478060]
+        sessdata: "your_sessdata_value_here"
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Your `SESSDATA` cookie is equivalent to your account session token. Do not share it publicly or commit it to version control. Treat it like a password.
+</Warning>
+
+## Enabling the live prompt
+
+For live streaming, you can enable the `live_prompt` tool prompt, which gives the AI context about being in a live streaming environment:
+
+```yaml
+system_config:
+  tool_prompts:
+    # live_prompt: 'live_prompt'   # Uncomment to enable
+```
+
+## How viewer messages are handled
+
+When a viewer sends a message in the Bilibili live room chat:
+
+1. The Bilibili integration receives the message.
+2. The message is forwarded to the AI as a user input.
+3. The AI responds as it would to any voice or text input, and the response is spoken aloud and animated on the Live2D model.
+
+<Note>
+  The Bilibili integration reads chat messages only. It does not interact with Bilibili's gift system, super chats, or other live room features at this time.
+</Note>
+
+<Tip>
+  Combine Bilibili live mode with proactive speaking so the AI can address the stream audience when the chat is quiet.
+</Tip>

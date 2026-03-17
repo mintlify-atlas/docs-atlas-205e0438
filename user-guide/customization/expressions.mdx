@@ -1,0 +1,96 @@
+---
+title: "Expressions"
+description: "Map Live2D facial expressions to LLM output keywords."
+---
+
+Open-LLM-VTuber lets the LLM control the character's facial expressions in real time. The LLM embeds keyword tags such as `[joy]` or `[sadness]` inside its responses. The frontend parses these tags and triggers the corresponding expression on the Live2D model.
+
+## How it works
+
+1. When the server starts, it reads the `emotionMap` for the active model from `model_dict.json`.
+2. The expression keyword list is injected into the `live2d_expression_prompt` tool prompt, replacing the `[<insert_emomap_keys>]` placeholder.
+3. This expanded prompt is appended to the character's `persona_prompt` before being sent to the LLM.
+4. The LLM outputs keywords in its responses (e.g., `"Hi! [joy] Nice to meet you!"`). 
+5. The frontend strips the tags from the displayed text and triggers the matching expression animation.
+
+## The expression prompt
+
+The `live2d_expression_prompt` (`prompts/utils/live2d_expression_prompt.txt`) instructs the LLM on how to use expressions:
+
+```
+## Expressions
+In your response, use the keywords provided below to express facial expressions or
+perform actions with your Live2D body.
+
+Here are all the expression keywords you can use. Use them regularly:
+- [neutral], [anger], [disgust], [fear], [joy], [smirk], [sadness], [surprise],
+
+## Examples
+Here are some examples of how to use expressions in your responses:
+
+"Hi! [joy] Nice to meet you!"
+"[sadness] That's a great question! [neutral] Let me explain..."
+
+Note: you are only allowed to use the keywords explicitly listed above.
+Don't use keywords unlisted above. Remember to include the brackets `[]`
+```
+
+The available keywords are automatically populated from your model's `emotionMap` at runtime, so no manual editing of the prompt file is needed when you change models.
+
+## Enabling expressions
+
+Expressions are enabled by default via `system_config.tool_prompts` in `conf.yaml`:
+
+```yaml
+system_config:
+  tool_prompts:
+    live2d_expression_prompt: 'live2d_expression_prompt'
+```
+
+To disable expressions (e.g., for a model that has no expression files), comment out or remove this line.
+
+## Defining expressions for your model
+
+Expression keywords and their mappings are set in `model_dict.json`. The `emotionMap` keys become the keywords the LLM can use, and the values are the integer indices of the expressions defined in the model's `.model3.json` file.
+
+```json
+"emotionMap": {
+  "neutral": 0,
+  "anger": 2,
+  "disgust": 2,
+  "fear": 1,
+  "joy": 3,
+  "smirk": 3,
+  "sadness": 1,
+  "surprise": 3
+}
+```
+
+<Note>
+  Multiple keywords can share the same expression index. In the example above, `anger` and `disgust` both trigger expression index `2`. This allows the LLM to use semantically natural words even when the model has fewer distinct expressions than you have keywords.
+</Note>
+
+## Finding expression indices
+
+Open your model's `.model3.json` file and locate the `Expressions` array. The index of each entry (zero-based) is the value to use in `emotionMap`.
+
+```json
+"Expressions": [
+  { "Name": "exp_neutral", "File": "expressions/neutral.exp3.json" },
+  { "Name": "exp_sad",     "File": "expressions/sad.exp3.json" },
+  { "Name": "exp_angry",   "File": "expressions/angry.exp3.json" },
+  { "Name": "exp_happy",   "File": "expressions/happy.exp3.json" }
+]
+```
+
+For this model, `neutral` → `0`, `sadness` → `1`, `anger` → `2`, `joy` → `3`.
+
+## Tips for better expression use
+
+<Tip>
+  Choose short, common English emotion words as keywords. The LLM is more likely to use words like `joy` and `sadness` naturally than technical or model-specific names like `exp_04_happy`.
+</Tip>
+
+<Tip>
+  Use 5–10 distinct keywords. Too few limits expressiveness; too many can confuse the LLM into over-tagging responses.
+</Tip>

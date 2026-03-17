@@ -1,0 +1,128 @@
+---
+title: "MeloTTS"
+description: "Configure MeloTTS for local, offline text-to-speech synthesis in Open LLM VTuber."
+---
+
+MeloTTS is a high-quality, multi-lingual TTS library developed by MyShell AI. It runs entirely on your machine and supports English, Chinese, Japanese, Korean, Spanish, and French speakers. No internet connection is required after the initial model download.
+
+## Setup
+
+<Steps>
+  <Step title="Install MeloTTS">
+    ```bash
+    pip install melo-tts
+    ```
+    Then download the required language model data:
+    ```bash
+    python -m unidic download
+    ```
+  </Step>
+  <Step title="Set tts_model to melo_tts">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'melo_tts'
+    ```
+  </Step>
+  <Step title="Configure language and speaker">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'melo_tts'
+        melo_tts:
+          speaker: 'EN-Default'
+          language: 'EN'
+          device: 'auto'
+          speed: 1.0
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+    Models are downloaded automatically on first run if not already cached.
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'melo_tts'
+    melo_tts:
+      speaker: 'EN-Default'
+      language: 'EN'
+      device: 'auto'
+      speed: 1.0
+```
+
+<ParamField path="speaker" type="string" required>
+  Speaker identifier. Must correspond to a speaker defined in the chosen language model.
+
+  English speakers:
+  - `EN-Default`
+  - `EN-US`
+  - `EN-BR` (British)
+  - `EN-INDIA`
+  - `EN-AU` (Australian)
+
+  Chinese speaker:
+  - `ZH`
+
+  Japanese speaker:
+  - `JP`
+
+  Korean speaker:
+  - `KR`
+
+  Spanish speaker:
+  - `ES`
+
+  French speaker:
+  - `FR`
+</ParamField>
+
+<ParamField path="language" type="string" required>
+  Language code matching the speaker's language. Must be consistent with `speaker`.
+
+  | Language | Code |
+  |---|---|
+  | English | `EN` |
+  | Chinese | `ZH` |
+  | Japanese | `JP` |
+  | Korean | `KR` |
+  | Spanish | `ES` |
+  | French | `FR` |
+</ParamField>
+
+<ParamField path="device" type="string" default="auto">
+  Device to run inference on. Options: `auto`, `cpu`, `cuda`, `cuda:0`, `mps` (Apple Silicon).
+  
+  `auto` selects CUDA if available, then MPS, then CPU.
+</ParamField>
+
+<ParamField path="speed" type="number" default="1.0">
+  Speech speed multiplier. Values below `1.0` slow speech; values above `1.0` speed it up.
+</ParamField>
+
+## Language and speaker pairing
+
+The `speaker` and `language` values must be consistent. Using mismatched values will cause an error at startup.
+
+| Speaker | Language |
+|---|---|
+| `EN-Default`, `EN-US`, `EN-BR`, `EN-INDIA`, `EN-AU` | `EN` |
+| `ZH` | `ZH` |
+| `JP` | `JP` |
+| `KR` | `KR` |
+| `ES` | `ES` |
+| `FR` | `FR` |
+
+<Note>
+  MeloTTS downloads model weights automatically on the first run. Ensure you have an internet connection when you first start the server with `melo_tts` selected. After that, the model is cached locally and no network access is required.
+</Note>
+
+<Tip>
+  For Chinese-English mixed content, MeloTTS with `speaker: 'ZH'` and `language: 'ZH'` handles code-switching (mixing Chinese and English in a single sentence) reasonably well.
+</Tip>

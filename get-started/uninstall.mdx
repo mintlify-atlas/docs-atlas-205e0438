@@ -1,0 +1,80 @@
+---
+title: How to uninstall
+description: Remove Open-LLM-VTuber and all associated files from your system.
+---
+
+Open-LLM-VTuber stores almost everything inside the project directory. Uninstalling is mostly a matter of deleting that folder.
+
+## Remove the project directory
+
+Delete the entire cloned repository, including all installed Python packages (which uv keeps inside the project), models, and configuration:
+
+```bash
+rm -rf /path/to/Open-LLM-VTuber
+```
+
+This removes:
+
+- All Python dependencies installed by `uv sync` (stored in `.venv/` inside the project)
+- Your `conf.yaml` and any custom character configs
+- The `chat_history/` directory
+- The `cache/` directory
+- Any models stored in the project's `models/` directory
+
+## Check for models downloaded outside the project
+
+Some models downloaded via Hugging Face or ModelScope may have been cached in your system's default cache directories rather than the project's `models/` folder.
+
+The server sets these environment variables on startup to redirect downloads into the project:
+
+```python
+os.environ["HF_HOME"] = str(Path(__file__).parent / "models")
+os.environ["MODELSCOPE_CACHE"] = str(Path(__file__).parent / "models")
+```
+
+However, if you ran any tools outside the server process, check these locations too:
+
+<Tabs>
+  <Tab title="macOS / Linux">
+    ```bash
+    # Hugging Face cache
+    ls ~/.cache/huggingface
+
+    # ModelScope cache
+    ls ~/.cache/modelscope
+    ```
+
+    Remove them if present:
+
+    ```bash
+    rm -rf ~/.cache/huggingface
+    rm -rf ~/.cache/modelscope
+    ```
+  </Tab>
+  <Tab title="Windows">
+    Check `%USERPROFILE%\.cache\huggingface` and `%USERPROFILE%\.cache\modelscope` in File Explorer and delete them if they exist.
+  </Tab>
+</Tabs>
+
+## Remove optional tools
+
+If you installed additional tools specifically for this project and no longer need them, you can uninstall them separately.
+
+**uv** (Python package manager):
+
+<Tabs>
+  <Tab title="macOS / Linux">
+    ```bash
+    rm ~/.local/bin/uv ~/.local/bin/uvx
+    ```
+  </Tab>
+  <Tab title="Windows">
+    Remove `uv.exe` and `uvx.exe` from `%USERPROFILE%\.local\bin\` or wherever uv was installed.
+  </Tab>
+</Tabs>
+
+**ffmpeg**: Uninstall using the same package manager you used to install it (`brew`, `apt`, etc.), if you no longer need it for other applications.
+
+**Ollama**: If you installed Ollama only for this project, follow the [Ollama uninstall instructions](https://github.com/ollama/ollama) for your platform.
+
+**DeepLX**: If you set up DeepLX for TTS translation, stop and remove that service according to its own documentation.

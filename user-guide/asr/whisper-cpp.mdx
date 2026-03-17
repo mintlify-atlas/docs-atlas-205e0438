@@ -1,0 +1,108 @@
+---
+title: "Whisper.cpp ASR"
+description: "Configure the Whisper.cpp ASR engine for CPU-efficient offline speech recognition in Open LLM VTuber."
+---
+
+Whisper.cpp is a C++ port of OpenAI Whisper via the `pywhispercpp` Python binding. It runs efficiently on CPU without requiring PyTorch, making it a good choice for systems where installing GPU drivers or PyTorch is not practical.
+
+## Installation
+
+<Steps>
+  <Step title="Install pywhispercpp">
+    ```bash
+    pip install pywhispercpp
+    ```
+  </Step>
+  <Step title="Set asr_model in conf.yaml">
+    ```yaml
+    character_config:
+      asr_config:
+        asr_model: 'whisper_cpp'
+    ```
+  </Step>
+  <Step title="Configure the engine">
+    ```yaml
+    whisper_cpp:
+      model_name: 'small'
+      model_dir: 'models/whisper'
+      print_realtime: False
+      print_progress: False
+      language: 'auto'
+      prompt: ''
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+    The model file will be downloaded to `model_dir` on first run if not already present.
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  asr_config:
+    asr_model: 'whisper_cpp'
+    whisper_cpp:
+      model_name: 'small'
+      model_dir: 'models/whisper'
+      print_realtime: False
+      print_progress: False
+      language: 'auto'
+      prompt: ''
+```
+
+<ParamField path="model_name" type="string" required>
+  Name of the Whisper model to load. All models available in pywhispercpp are supported. Common values:
+  - `tiny`, `tiny.en`
+  - `base`, `base.en`
+  - `small`, `small.en`
+  - `medium`, `medium.en`
+  - `large-v2`, `large-v3`
+
+  The `.en` variants are English-only but slightly faster. See the [full model list](https://abdeladim-s.github.io/pywhispercpp/#pywhispercpp.constants.AVAILABLE_MODELS).
+</ParamField>
+
+<ParamField path="model_dir" type="string" required>
+  Directory where model files are stored or downloaded.
+</ParamField>
+
+<ParamField path="print_realtime" type="boolean" default="false">
+  Stream partial transcription tokens to stdout in real time. Useful for debugging.
+</ParamField>
+
+<ParamField path="print_progress" type="boolean" default="false">
+  Print inference progress information to stdout.
+</ParamField>
+
+<ParamField path="language" type="string" default="auto">
+  Language code for the audio (e.g., `en`, `zh`, `ja`). Use `auto` to let Whisper.cpp detect the language automatically.
+</ParamField>
+
+<ParamField path="prompt" type="string">
+  Optional initial prompt string to guide transcription. The language of the prompt should match the audio language.
+</ParamField>
+
+## Choosing a model size
+
+| Model | Disk size | Notes |
+|---|---|---|
+| `tiny` | ~75 MB | Fastest, lowest accuracy |
+| `base` | ~142 MB | Good for quick prototyping |
+| `small` | ~466 MB | Recommended default for CPU |
+| `medium` | ~1.5 GB | Higher accuracy, slower |
+| `large-v3` | ~3.1 GB | Best accuracy, slowest |
+
+<Tip>
+  `small` is a solid default for CPU-only machines. If accuracy is important and you have available RAM, try `medium`.
+</Tip>
+
+## Notes on CPU performance
+
+Whisper.cpp is optimized for CPU inference with AVX2 and optionally with CoreML on Apple Silicon. It does not require a GPU, but transcription of longer audio segments may be slower than GPU-based alternatives.
+
+<Note>
+  For real-time conversational use, keep utterances short (under 30 seconds). Whisper.cpp processes audio as a batch rather than streaming, so very long segments will introduce noticeable latency.
+</Note>

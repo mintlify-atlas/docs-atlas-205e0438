@@ -1,0 +1,165 @@
+---
+title: System Architecture
+description: A detailed overview of how Open-LLM-VTuber's components fit together.
+---
+
+## Overview
+
+Open-LLM-VTuber is a FastAPI-based server application. A browser (or the Electron desktop client) connects over WebSocket and exchanges JSON messages to drive a voice conversation with a Live2D avatar. Every major subsystem — speech recognition, text-to-speech, language model, voice activity detection — is pluggable via a factory pattern.
+
+```
+┌────────────────────────────────────────────────────┐
+│                  Browser / Client                  │
+│            (WebSocket ws://host:12393)             │
+└───────────────────────┬────────────────────────────┘
+                        │ JSON messages
+┌───────────────────────▼────────────────────────────┐
+│               WebSocketServer (FastAPI)            │
+│  • Serves frontend, Live2D models, static assets   │
+│  • /client-ws  – main client endpoint              │
+│  • /proxy-ws   – optional proxy endpoint           │
+│  • /asr        – HTTP audio transcription          │
+│  • /tts-ws     – WebSocket TTS generation          │
+└───────────────────────┬────────────────────────────┘
+                        │
+┌───────────────────────▼────────────────────────────┐
+│              WebSocketHandler                      │
+│  • Routes messages by "type" field                 │
+│  • Maintains per-client ServiceContext             │
+│  • Manages ChatGroups for multi-user sessions      │
+└──────┬─────────────────────────────────────────────┘
+       │
+┌──────▼──────────────────────────────────────────────────────┐
+│                     ServiceContext                          │
+│  (one per connected client)                                 │
+│  asr_engine: ASRInterface                                   │
+│  tts_engine: TTSInterface                                   │
+│  agent_engine: AgentInterface                               │
+│  vad_engine: VADInterface                                   │
+│  translate_engine: TranslateInterface | None                │
+│  live2d_model: Live2dModel                                  │
+│  mcp_client / tool_executor / tool_manager                  │
+└──────┬──────────────────────────────────────────────────────┘
+       │  factory methods
+┌──────▼────────────────────────────────────────────┐
+│  AgentFactory  │  ASRFactory  │  TTSFactory        │
+│  VADFactory    │  TranslateFactory                 │
+└───────────────────────────────────────────────────┘
+```
+
+## Core Components
+
+### WebSocketServer (`server.py`)
+
+`WebSocketServer` wraps a `FastAPI` application. Its constructor:
+
+1. Registers all routes by calling `init_client_ws_route`, `init_webtool_routes`, and (optionally) `init_proxy_route`.
+2. Mounts static directories: `cache/`, `live2d-models/`, `backgrounds/`, `avatars/`, `web_tool/`, and `frontend/`.
+3. Adds global CORS middleware so the frontend can be served from a different port during development.
+
+```python
+class WebSocketServer:
+    def __init__(self, config: Config, default_context_cache: ServiceContext = None):
+        self.app = FastAPI(title="Open-LLM-VTuber Server")
+        ...
+
+    async def initialize(self):
+        """Load the service context from config."""
+        await self.default_context_cache.load_from_config(self.config)
+```
+
+### ServiceContext (`service_context.py`)
+
+`ServiceContext` is the **dependency injection container** for a session. Each incoming WebSocket connection gets its own `ServiceContext` instance, cloned from a shared default cache:
+
+```python
+class ServiceContext:
+    config: Config
+    system_config: SystemConfig
+    character_config: CharacterConfig
+
+    live2d_model: Live2dModel
+    asr_engine: ASRInterface
+    tts_engine: TTSInterface
+    agent_engine: AgentInterface
+    vad_engine: VADInterface | None
+    translate_engine: TranslateInterface | None
+
+    # MCP
+    mcp_client: MCPClient | None
+    tool_manager: ToolManager | None
+    tool_executor: ToolExecutor | None
+```
+
+Shared, stateless engines (ASR, TTS, VAD) are passed **by reference** from the default cache. The agent engine is stateful and gets a fresh instance per session.
+
+### WebSocketHandler (`websocket_handler.py`)
+
+`WebSocketHandler` owns the connection lifecycle and message routing:
+
+- `handle_new_connection` — clones the default `ServiceContext`, sends initial messages (`set-model-and-conf`, `start-mic`).
+- `handle_websocket_communication` — reads JSON frames in a loop and dispatches them via `_route_message`.
+- `handle_disconnect` — tears down the group state, cancels any running task, and closes the `ServiceContext`.
+
+Message types are dispatched through a dictionary built in `_init_message_handlers()`:
+
+```python
+{
+    "mic-audio-data":        self._handle_audio_data,
+    "mic-audio-end":         self._handle_conversation_trigger,
+    "text-input":            self._handle_conversation_trigger,
+    "interrupt-signal":      self._handle_interrupt,
+    "fetch-history-list":    self._handle_history_list_request,
+    "switch-config":         self._handle_config_switch,
+    "heartbeat":             self._handle_heartbeat,
+    # ... and more
+}
+```
+
+New message handlers should follow the `_handle_*` naming pattern.
+
+## Modular Engine System
+
+All AI engines are created through factory classes. The factory selects the concrete implementation based on a string identifier from the config file:
+
+| Factory | Key field | Example values |
+|---|---|---|
+| `LLMFactory` | `llm_provider` | `openai_compatible_llm`, `ollama_llm`, `claude_llm` |
+| `AgentFactory` | `conversation_agent_choice` | `basic_memory_agent`, `letta_agent`, `hume_ai_agent` |
+| `ASRFactory` | `asr_model` | `faster_whisper`, `sherpa_onnx_asr`, `fun_asr`, `azure_asr` |
+| `TTSFactory` | `tts_model` | `edge_tts`, `azure_tts`, `gpt_sovits_tts`, `openai_tts` |
+| `VADFactory` | `vad_model` | `silero_vad` |
+
+## Conversation System
+
+The `conversations/` package orchestrates the full conversation loop:
+
+- **`conversation_handler.py`** — `handle_conversation_trigger` is the entry point; it decides whether to run a single or group conversation.
+- **`single_conversation.py`** — runs the ASR → agent `chat()` → TTS pipeline for one user.
+- **`group_conversation.py`** — coordinates turn-taking across multiple clients in the same chat group.
+- **`tts_manager.py`** — streams generated audio chunks back to the client via WebSocket.
+
+## Configuration Management
+
+All configuration is defined as Pydantic/dataclass models in `config_manager/`. The top-level `Config` object contains:
+
+- `system_config: SystemConfig` — host, port, tool prompts, etc.
+- `character_config: CharacterConfig` — Live2D model, persona prompt, ASR/TTS/agent sub-configs.
+
+Configs are loaded from `conf.yaml` (or a character override file in `characters/`) at startup. At runtime, the client can send a `switch-config` message to hot-swap the character configuration.
+
+<Note>
+  Always update **both** `config_templates/conf.default.yaml` and `config_templates/conf.ZH.default.yaml` when adding new configuration options.
+</Note>
+
+## MCP Integration
+
+The Model Context Protocol (MCP) system (`mcpp/`) extends the agent with external tools:
+
+- **`ServerRegistry`** — tracks available MCP servers.
+- **`ToolAdapter`** — fetches tool definitions from servers and formats them for OpenAI or Claude APIs.
+- **`ToolManager`** — holds the formatted tool lists.
+- **`MCPClient`** — executes tool calls and streams results back to the client.
+- **`ToolExecutor`** — coordinates tool invocation between `MCPClient` and `ToolManager`.
+
+MCP is enabled per-character in the `basic_memory_agent` section of the agent config.

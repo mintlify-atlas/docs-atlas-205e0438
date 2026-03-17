@@ -1,0 +1,155 @@
+---
+title: "Sherpa-ONNX TTS"
+description: "Configure Sherpa-ONNX for fully offline, local TTS in Open LLM VTuber using VITS-based ONNX models."
+---
+
+Sherpa-ONNX TTS runs entirely on your machine using ONNX-format VITS models. It produces no network requests after the model files are downloaded and supports CPU, CUDA, and CoreML inference backends. This makes it the recommended choice for offline or privacy-sensitive deployments.
+
+## Setup
+
+<Steps>
+  <Step title="Install the sherpa-onnx package">
+    ```bash
+    pip install sherpa-onnx
+    ```
+    Or, if you use `uv`:
+    ```bash
+    uv add sherpa-onnx
+    ```
+  </Step>
+  <Step title="Download a TTS model">
+    Browse and download a model from the Sherpa-ONNX TTS model releases:
+    [https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models](https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models)
+
+    Extract the archive to a location such as `models/sherpa-onnx-tts/`. Note the paths to:
+    - The `.onnx` model file
+    - `tokens.txt`
+    - `lexicon.txt` (if present)
+    - `dict/` directory (for Chinese models using Jieba)
+    - Any `.fst` rule files (for Chinese/Japanese text normalisation)
+  </Step>
+  <Step title="Set tts_model to sherpa_onnx_tts">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'sherpa_onnx_tts'
+    ```
+  </Step>
+  <Step title="Configure the model paths">
+    Update the `sherpa_onnx_tts` section with the paths from your extracted model:
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'sherpa_onnx_tts'
+        sherpa_onnx_tts:
+          vits_model: '/path/to/tts-models/vits-melo-tts-zh_en/model.onnx'
+          vits_lexicon: '/path/to/tts-models/vits-melo-tts-zh_en/lexicon.txt'
+          vits_tokens: '/path/to/tts-models/vits-melo-tts-zh_en/tokens.txt'
+          vits_data_dir: ''
+          vits_dict_dir: '/path/to/tts-models/vits-melo-tts-zh_en/dict'
+          tts_rule_fsts: '/path/to/tts-models/vits-melo-tts-zh_en/number.fst,/path/to/tts-models/vits-melo-tts-zh_en/phone.fst'
+          max_num_sentences: 2
+          sid: 1
+          provider: 'cpu'
+          num_threads: 1
+          speed: 1.0
+          debug: false
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'sherpa_onnx_tts'
+    sherpa_onnx_tts:
+      vits_model: '/path/to/tts-models/vits-melo-tts-zh_en/model.onnx'
+      vits_lexicon: '/path/to/tts-models/vits-melo-tts-zh_en/lexicon.txt'
+      vits_tokens: '/path/to/tts-models/vits-melo-tts-zh_en/tokens.txt'
+      vits_data_dir: ''
+      vits_dict_dir: '/path/to/tts-models/vits-melo-tts-zh_en/dict'
+      tts_rule_fsts: '/path/to/tts-models/vits-melo-tts-zh_en/number.fst,/path/to/tts-models/vits-melo-tts-zh_en/phone.fst,/path/to/tts-models/vits-melo-tts-zh_en/date.fst,/path/to/tts-models/vits-melo-tts-zh_en/new_heteronym.fst'
+      max_num_sentences: 2
+      sid: 1
+      provider: 'cpu'
+      num_threads: 1
+      speed: 1.0
+      debug: false
+```
+
+<ParamField path="vits_model" type="string" required>
+  Path to the VITS ONNX model file (`.onnx`).
+</ParamField>
+
+<ParamField path="vits_tokens" type="string" required>
+  Path to the `tokens.txt` file. Required for all models.
+</ParamField>
+
+<ParamField path="vits_lexicon" type="string">
+  Path to `lexicon.txt`. Required for models that use a lexicon (e.g., Chinese/English VITS models). Leave empty if the model does not include one.
+</ParamField>
+
+<ParamField path="vits_data_dir" type="string">
+  Path to the `espeak-ng-data` directory. Required for models that rely on espeak-ng for phonemisation (e.g., Piper-based models). Leave empty for models that do not use espeak-ng.
+</ParamField>
+
+<ParamField path="vits_dict_dir" type="string">
+  Path to the Jieba dictionary directory (`dict/`). Required for Chinese models that use Jieba for word segmentation. Leave empty for non-Chinese models.
+</ParamField>
+
+<ParamField path="tts_rule_fsts" type="string">
+  Comma-separated list of paths to FST rule files (`.fst`) used for text normalisation (e.g., numbers, dates, phone numbers). The files available depend on the model package. Leave empty if the model does not include FST rules.
+</ParamField>
+
+<ParamField path="max_num_sentences" type="integer" default="2">
+  Maximum number of sentences to synthesise per batch. Set to `-1` to process all sentences at once.
+</ParamField>
+
+<ParamField path="sid" type="integer" default="1">
+  Speaker ID for multi-speaker models. For single-speaker models, keep this at `0` or `1` as required by the specific model.
+</ParamField>
+
+<ParamField path="provider" type="string" default="cpu">
+  Computation backend. Options:
+  - `cpu` — works everywhere, no special hardware required
+  - `cuda` — NVIDIA GPU acceleration
+  - `coreml` — Apple Silicon acceleration (macOS only)
+</ParamField>
+
+<ParamField path="num_threads" type="integer" default="1">
+  Number of CPU threads to use for inference. Increasing this can improve throughput on multi-core machines when using the `cpu` provider.
+</ParamField>
+
+<ParamField path="speed" type="number" default="1.0">
+  Speech speed multiplier. Values below `1.0` slow speech down; values above `1.0` speed it up.
+</ParamField>
+
+<ParamField path="debug" type="boolean" default="false">
+  Enable verbose debug output from the Sherpa-ONNX engine.
+</ParamField>
+
+## Choosing a model
+
+The Sherpa-ONNX TTS model releases page lists many models grouped by language. Some useful starting points:
+
+| Model | Language | Notes |
+|---|---|---|
+| `vits-melo-tts-zh_en` | Chinese + English | Multi-speaker, includes FST rules and Jieba dict |
+| `vits-piper-en_US-amy-low` | English | Uses espeak-ng, set `vits_data_dir` |
+| `vits-piper-zh_CN-huayan-medium` | Chinese | Uses espeak-ng, set `vits_data_dir` |
+| `vits-zh-aishell3` | Chinese | Multi-speaker, 174 speakers |
+
+<Tip>
+  Each model archive contains a `README.md` that lists which files are needed and provides example configuration. Read it before configuring your paths.
+</Tip>
+
+<Note>
+  For English-only use cases, models based on Piper (prefixed `vits-piper-`) generally produce the most natural-sounding output. Set `vits_data_dir` to the `espeak-ng-data` folder inside the model archive.
+</Note>

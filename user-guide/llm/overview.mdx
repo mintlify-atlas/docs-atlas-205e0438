@@ -1,0 +1,104 @@
+---
+title: LLM Backends
+description: Overview of all supported LLM backends in Open LLM VTuber and how to configure them.
+---
+
+Open LLM VTuber supports a wide range of LLM backends — from locally-run models via Ollama or LM Studio, to cloud APIs like OpenAI, Anthropic Claude, Google Gemini, and more. This page explains how the LLM configuration system works and how to switch between providers.
+
+## How LLM selection works
+
+The LLM configuration lives inside your `conf.yaml` under `character_config.agent_config`. There are two relevant sections:
+
+1. **`llm_provider`** — tells the agent which provider to use.
+2. **`llm_configs`** — a pool of provider credentials and connection settings.
+
+```yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        llm_provider: 'ollama_llm'   # <-- active provider
+
+    llm_configs:
+      ollama_llm:
+        base_url: 'http://localhost:11434/v1'
+        model: 'qwen2.5:latest'
+        temperature: 1.0
+        keep_alive: -1
+        unload_at_exit: True
+
+      openai_llm:
+        llm_api_key: 'Your Open AI API key'
+        model: 'gpt-4o'
+        temperature: 1.0
+      # ... other providers
+```
+
+To switch providers, change the value of `llm_provider` to the config key of the provider you want to use. The corresponding block under `llm_configs` must be present and filled in.
+
+<Note>
+You can define credentials for multiple providers simultaneously in `llm_configs`. Only the one referenced by `llm_provider` is active at runtime.
+</Note>
+
+## Supported providers
+
+| Provider | Config key | Type | Notes |
+|---|---|---|---|
+| Ollama | `ollama_llm` | Local | Default backend. Requires Ollama installed locally. |
+| OpenAI-compatible | `openai_compatible_llm` | Local or cloud | Works with any OpenAI-compatible API server. |
+| OpenAI | `openai_llm` | Cloud | Official OpenAI API. |
+| Anthropic Claude | `claude_llm` | Cloud | Uses the Anthropic API directly. |
+| Google Gemini | `gemini_llm` | Cloud | Uses Google's Gemini API via OpenAI-compatible endpoint. |
+| DeepSeek | `deepseek_llm` | Cloud | DeepSeek's hosted API. |
+| Groq | `groq_llm` | Cloud | Fast inference via Groq's API. |
+| LM Studio | `lmstudio_llm` | Local | LM Studio's built-in API server. |
+| Mistral | `mistral_llm` | Cloud | Mistral AI's hosted API. |
+| Zhipu (GLM) | `zhipu_llm` | Cloud | ZhiPu AI's API (GLM models). |
+| Llama.cpp | `llama_cpp_llm` | Local | Direct GGUF model loading via llama.cpp. |
+
+## Local vs. cloud LLMs
+
+**Local LLMs** (Ollama, LM Studio, llama.cpp) run entirely on your machine:
+- No API key required
+- Full privacy — nothing leaves your machine
+- Requires sufficient hardware (RAM/VRAM for the model)
+- Recommended for most users starting out
+
+**Cloud LLMs** (OpenAI, Claude, Gemini, DeepSeek, Groq) run on remote servers:
+- Requires an API key and may incur costs
+- No local hardware requirements
+- Higher latency for the first response token
+- Typically higher capability for complex tasks
+
+<Tip>
+For the best experience on modest hardware, start with Ollama using `qwen2.5:latest` (the default). If you need higher-quality responses without local hardware, Groq offers fast free-tier inference.
+</Tip>
+
+## Provider pages
+
+<Columns cols={3}>
+  <Card title="Ollama" icon="box" href="/user-guide/llm/ollama">
+    Local models via Ollama. The default backend.
+  </Card>
+  <Card title="OpenAI-compatible" icon="plug" href="/user-guide/llm/openai-compatible">
+    Any OpenAI-compatible API server.
+  </Card>
+  <Card title="OpenAI" icon="sparkles" href="/user-guide/llm/openai">
+    Official OpenAI API (GPT-4o, etc.).
+  </Card>
+  <Card title="Claude" icon="cpu" href="/user-guide/llm/claude">
+    Anthropic Claude models.
+  </Card>
+  <Card title="Gemini" icon="star" href="/user-guide/llm/gemini">
+    Google Gemini models.
+  </Card>
+  <Card title="DeepSeek" icon="search" href="/user-guide/llm/deepseek">
+    DeepSeek hosted API.
+  </Card>
+  <Card title="Groq" icon="bolt" href="/user-guide/llm/groq">
+    Fast inference via Groq.
+  </Card>
+  <Card title="LM Studio" icon="monitor" href="/user-guide/llm/lmstudio">
+    Local models via LM Studio.
+  </Card>
+</Columns>

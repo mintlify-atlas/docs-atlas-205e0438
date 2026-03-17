@@ -1,0 +1,124 @@
+---
+title: Mem0 Agent
+description: Give your VTuber persistent memory across sessions using Mem0's vector storage layer, without running a full Letta server.
+---
+
+[Mem0](https://mem0.ai) is a memory layer for AI applications. It extracts and stores facts from conversations into a vector database, then retrieves relevant memories on each new turn. The Mem0 Agent wraps an OpenAI-compatible LLM with this memory layer so the character can remember information about the user across sessions.
+
+**When to use this agent:**
+- You want the character to remember user preferences and facts across multiple sessions.
+- You prefer a lighter setup than running a full Letta server.
+- You already have or are willing to run a vector database (such as Qdrant).
+
+<Note>
+  The `mem0_llm.py` implementation file is a work in progress. Check the [project repository](https://github.com/t41372/Open-LLM-VTuber) for the current status before relying on this agent in production.
+</Note>
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install a vector database">
+    Mem0 requires a vector store backend. [Qdrant](https://qdrant.tech) is the recommended option and can be run locally with Docker:
+
+    ```bash
+    docker run -p 6333:6333 qdrant/qdrant
+    ```
+  </Step>
+  <Step title="Install the mem0 Python package">
+    ```bash
+    pip install mem0ai
+    ```
+  </Step>
+  <Step title="Configure the agent in conf.yaml">
+    Add the `mem0_agent` block to your `agent_settings` (see below) and set `conversation_agent_choice: 'mem0_agent'`.
+  </Step>
+  <Step title="Restart the server">
+    Run `uv run run_server.py`.
+  </Step>
+</Steps>
+
+## Configuration
+
+The `mem0_agent` block requires three fields — `base_url`, `model`, and `mem0_config` — which are not present in `conf.default.yaml` because this agent must be configured manually.
+
+```yaml
+agent_config:
+  conversation_agent_choice: 'mem0_agent'
+
+  agent_settings:
+    mem0_agent:
+      base_url: 'http://localhost:11434/v1'   # OpenAI-compatible endpoint
+      model: 'qwen2.5:latest'
+      mem0_config:
+        vector_store:
+          provider: 'qdrant'
+          config:
+            collection_name: 'open_llm_vtuber'
+            host: 'localhost'
+            port: 6333
+        llm:
+          provider: 'ollama'
+          config:
+            model: 'qwen2.5:latest'
+            base_url: 'http://localhost:11434'
+        embedder:
+          provider: 'ollama'
+          config:
+            model: 'nomic-embed-text:latest'
+            base_url: 'http://localhost:11434'
+```
+
+### Top-level parameters
+
+<ParamField path="base_url" type="string" required>
+  Base URL of an OpenAI-compatible API endpoint used for the main chat completions. This is the LLM the character speaks through.
+</ParamField>
+
+<ParamField path="model" type="string" required>
+  Model name to pass to the OpenAI-compatible endpoint for chat completions.
+</ParamField>
+
+<ParamField path="mem0_config" type="object" required>
+  Configuration object passed directly to the Mem0 library. Must contain `vector_store`, `llm`, and `embedder` sub-objects.
+</ParamField>
+
+### mem0_config.vector_store
+
+<ParamField path="mem0_config.vector_store.provider" type="string" required>
+  Vector store backend. `qdrant` is the most commonly used option. See the [Mem0 documentation](https://docs.mem0.ai) for a full list of supported providers.
+</ParamField>
+
+<ParamField path="mem0_config.vector_store.config" type="object" required>
+  Provider-specific connection settings. For Qdrant: `collection_name`, `host`, and `port`.
+</ParamField>
+
+### mem0_config.llm
+
+<ParamField path="mem0_config.llm.provider" type="string" required>
+  LLM provider used by Mem0 internally for memory extraction and summarisation. This is separate from the main chat LLM.
+</ParamField>
+
+<ParamField path="mem0_config.llm.config" type="object" required>
+  Provider-specific settings for the Mem0 internal LLM (model name, base URL, API key, etc.).
+</ParamField>
+
+### mem0_config.embedder
+
+<ParamField path="mem0_config.embedder.provider" type="string" required>
+  Embedding model provider used to encode memories for vector search.
+</ParamField>
+
+<ParamField path="mem0_config.embedder.config" type="object" required>
+  Provider-specific settings for the embedder (model name, base URL, etc.). When using Ollama, pull an embedding model first: `ollama pull nomic-embed-text`.
+</ParamField>
+
+## Memory behaviour
+
+- Facts are extracted from each conversation turn and stored in the vector database under a `user_id` derived from the session.
+- On each new turn, Mem0 performs a similarity search to retrieve the most relevant memories and injects them into the system prompt.
+- Memory **persists across server restarts** as long as the vector database is running and its data directory is intact.
+- Unlike the Basic Memory Agent, raw message history is not kept in context — only the extracted facts are retrieved.
+
+<Warning>
+  Memory extraction adds an extra LLM call per turn (the `mem0_config.llm`). This increases latency and token usage. For latency-sensitive setups, use a fast local model for the Mem0 LLM config.
+</Warning>

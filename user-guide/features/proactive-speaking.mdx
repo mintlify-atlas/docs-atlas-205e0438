@@ -1,0 +1,75 @@
+---
+title: "Proactive Speaking"
+description: "Let the AI initiate conversation without waiting for user input."
+---
+
+Proactive speaking allows the AI to speak on its own initiative — sending a message without the user saying anything first. This can be used for greetings when the application starts, periodic commentary, reactions to screen content, or any other scenario where the AI should drive the conversation.
+
+## How it works
+
+When a proactive speak event is triggered, the server sends the `proactive_speak_prompt` to the AI as a hidden system message. The AI generates a response as if the user had asked it to say something appropriate for the current context.
+
+The prompt itself (`prompts/utils/proactive_speak_prompt.txt`) is intentionally minimal:
+
+```
+Please say something that would be engaging and appropriate for the current context.
+```
+
+This keeps the behavior open-ended, relying on the character's `persona_prompt` to shape what "appropriate" means for that specific character.
+
+## Enabling the prompt
+
+The `proactive_speak_prompt` tool prompt must be active in `system_config.tool_prompts`:
+
+```yaml
+system_config:
+  tool_prompts:
+    proactive_speak_prompt: 'proactive_speak_prompt'
+```
+
+This is included in the default configuration.
+
+## Triggering proactive speech
+
+Proactive speech can be triggered from the web UI:
+
+1. Open the web UI at `http://localhost:12393`.
+2. Look for the **proactive speak** button (the speech bubble or lightning bolt icon, depending on UI version).
+3. Click it to prompt the AI to say something.
+
+Proactive speech can also be triggered programmatically by sending the appropriate WebSocket message, which is useful for building automations (e.g., a timer that triggers a greeting every morning).
+
+## Use cases
+
+<CardGroup cols={2}>
+  <Card title="Startup greetings" icon="hand-wave">
+    The AI greets you when you open the application.
+  </Card>
+  <Card title="Screen commentary" icon="eye">
+    Combined with visual perception, the AI comments on what is on your screen.
+  </Card>
+  <Card title="Idle remarks" icon="clock">
+    The AI says something when no conversation has happened for a while.
+  </Card>
+  <Card title="Streamer interaction" icon="broadcast-tower">
+    In live streaming mode, the AI proactively addresses the audience.
+  </Card>
+</CardGroup>
+
+## Customizing the proactive prompt
+
+You can customize what the AI says proactively by editing `prompts/utils/proactive_speak_prompt.txt`:
+
+```
+Greet the user warmly and ask how their day is going.
+```
+
+Or for a more specific use case:
+
+```
+You just noticed the user has been working for a while. Suggest they take a short break and offer some encouragement.
+```
+
+<Tip>
+  Keep the proactive prompt short. The character's `persona_prompt` already establishes tone and personality, so the proactive prompt only needs to specify the intent of this particular message.
+</Tip>

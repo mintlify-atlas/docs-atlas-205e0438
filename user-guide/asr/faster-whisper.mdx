@@ -1,0 +1,135 @@
+---
+title: "Faster Whisper ASR"
+description: "Configure the Faster Whisper ASR engine for high-accuracy offline speech recognition in Open LLM VTuber."
+---
+
+Faster Whisper is a reimplementation of OpenAI's Whisper model using CTranslate2, offering faster inference with lower memory usage compared to the original Whisper. It supports CPU and CUDA inference and can automatically download models from Hugging Face.
+
+## Installation
+
+<Steps>
+  <Step title="Install the faster-whisper package">
+    ```bash
+    pip install faster-whisper
+    ```
+  </Step>
+  <Step title="Set asr_model in conf.yaml">
+    ```yaml
+    character_config:
+      asr_config:
+        asr_model: 'faster_whisper'
+    ```
+  </Step>
+  <Step title="Configure the engine">
+    ```yaml
+    faster_whisper:
+      model_path: 'large-v3-turbo'
+      download_root: 'models/whisper'
+      language: 'en'
+      device: 'auto'
+      compute_type: 'int8'
+      prompt: ''
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+    If the model is not present locally, it will be downloaded from Hugging Face to the `download_root` directory on first run.
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  asr_config:
+    asr_model: 'faster_whisper'
+    faster_whisper:
+      model_path: 'large-v3-turbo'
+      download_root: 'models/whisper'
+      language: 'en'
+      device: 'auto'
+      compute_type: 'int8'
+      prompt: ''
+```
+
+<ParamField path="model_path" type="string" required>
+  Model name, path to a local directory, or Hugging Face model ID. Common values:
+  - `tiny`, `base`, `small`, `medium`, `large-v2`, `large-v3`
+  - `large-v3-turbo` (default — good balance of speed and accuracy)
+  - A local path such as `./models/whisper/large-v3-turbo`
+</ParamField>
+
+<ParamField path="download_root" type="string" required>
+  Directory where downloaded models are cached.
+</ParamField>
+
+<ParamField path="language" type="string" default="en">
+  BCP-47 language code for the audio (e.g., `en`, `zh`, `ja`). Leave empty or omit to enable automatic language detection. Auto-detection adds a small latency overhead per segment.
+</ParamField>
+
+<ParamField path="device" type="string" default="auto">
+  Compute device. `auto` selects CUDA if available, otherwise CPU. Faster Whisper does **not** support Apple MPS (`mps`) — use `cpu` on Apple Silicon.
+</ParamField>
+
+<ParamField path="compute_type" type="string" default="int8">
+  Quantization format. Options: `int8`, `float16`, `float32`. `int8` uses the least memory and is fastest on CPU. `float16` is recommended when using CUDA.
+</ParamField>
+
+<ParamField path="prompt" type="string">
+  Optional initial prompt string to provide context or guide transcription style. The language of the prompt should match the audio language.
+</ParamField>
+
+## Choosing a model size
+
+| Model | Parameters | Relative speed | Accuracy |
+|---|---|---|---|
+| `tiny` | 39M | Fastest | Lowest |
+| `base` | 74M | Very fast | Low |
+| `small` | 244M | Fast | Medium |
+| `medium` | 769M | Moderate | Good |
+| `large-v3` | 1.5B | Slow | Best |
+| `large-v3-turbo` | ~800M distilled | Fast | Near large-v3 |
+
+<Tip>
+  `large-v3-turbo` is the default and recommended choice. It approaches `large-v3` accuracy at significantly lower compute cost.
+</Tip>
+
+## GPU acceleration
+
+<Warning>
+  Faster Whisper does not support Apple Silicon's MPS backend. On macOS with Apple Silicon, set `device: 'cpu'`.
+</Warning>
+
+For CUDA acceleration:
+
+1. Ensure you have a CUDA-capable GPU and a compatible CUDA toolkit.
+2. Set `device: 'cuda'` (or leave as `auto`).
+3. Set `compute_type: 'float16'` for best GPU throughput.
+
+```yaml
+faster_whisper:
+  model_path: 'large-v3-turbo'
+  download_root: 'models/whisper'
+  language: 'en'
+  device: 'cuda'
+  compute_type: 'float16'
+```
+
+## Multilingual transcription
+
+To let Faster Whisper automatically detect the spoken language, leave `language` empty:
+
+```yaml
+faster_whisper:
+  model_path: 'large-v3-turbo'
+  download_root: 'models/whisper'
+  language: ''
+  device: 'auto'
+  compute_type: 'int8'
+```
+
+<Note>
+  Language auto-detection is performed per audio segment and adds a small overhead. For single-language use cases, specifying the language explicitly gives faster results.
+</Note>

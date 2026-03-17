@@ -1,0 +1,94 @@
+---
+title: "Visual Perception"
+description: "Let the AI see your camera feed or screen contents using a multimodal LLM."
+---
+
+Visual perception lets the AI analyze images from your webcam or a screenshot and incorporate what it sees into the conversation. It requires a multimodal LLM.
+
+<Warning>
+  Visual perception only works when the configured LLM supports image input. Examples of compatible models include `gpt-4o` (OpenAI), `gemini-2.0-flash-exp` (Google), and multimodal models served through Ollama such as `llava` or `mistrala`.
+</Warning>
+
+## How it works
+
+1. You click the **camera** or **screenshot** button in the web UI.
+2. The frontend captures an image (camera frame or full-screen screenshot) and encodes it as base64.
+3. The encoded image is sent to the server alongside the current audio/text input.
+4. The server passes the image to the LLM as part of the message.
+5. The LLM describes, analyzes, or reacts to the image content as part of its response.
+
+## Requirements
+
+<CardGroup cols={2}>
+  <Card title="Multimodal LLM" icon="eye">
+    The LLM backend must accept image inputs. Set a vision-capable model in `llm_configs`.
+  </Card>
+  <Card title="Desktop client or browser" icon="desktop">
+    Camera and screenshot capture are available in both the web UI and the desktop client.
+  </Card>
+</CardGroup>
+
+## Configuring a multimodal LLM
+
+Switch to a vision-capable model in your LLM config. Examples:
+
+<Tabs>
+  <Tab title="OpenAI (gpt-4o)">
+    ```yaml
+    agent_config:
+      agent_settings:
+        basic_memory_agent:
+          llm_provider: 'openai_llm'
+
+      llm_configs:
+        openai_llm:
+          llm_api_key: 'your-openai-api-key'
+          model: 'gpt-4o'
+          temperature: 1.0
+    ```
+  </Tab>
+  <Tab title="Gemini">
+    ```yaml
+    agent_config:
+      agent_settings:
+        basic_memory_agent:
+          llm_provider: 'gemini_llm'
+
+      llm_configs:
+        gemini_llm:
+          llm_api_key: 'your-gemini-api-key'
+          model: 'gemini-2.0-flash-exp'
+          temperature: 1.0
+    ```
+  </Tab>
+  <Tab title="Ollama (llava)">
+    ```yaml
+    agent_config:
+      agent_settings:
+        basic_memory_agent:
+          llm_provider: 'ollama_llm'
+
+      llm_configs:
+        ollama_llm:
+          base_url: 'http://localhost:11434/v1'
+          model: 'llava'
+          temperature: 1.0
+    ```
+  </Tab>
+</Tabs>
+
+## Using visual perception
+
+Once the server is running with a multimodal model:
+
+1. Open the web UI at `http://localhost:12393`.
+2. Click the **camera icon** to enable webcam capture, or the **screenshot icon** to send a screenshot.
+3. Speak or type as normal — the image will be included with your next message.
+
+<Tip>
+  You can describe what you are working on by sharing a screenshot, then ask the AI for help. The AI will analyze the screenshot and respond in the context of what it sees.
+</Tip>
+
+<Note>
+  The image is sent once per interaction, not as a continuous video stream. The AI sees a single frame at the moment you trigger the capture.
+</Note>

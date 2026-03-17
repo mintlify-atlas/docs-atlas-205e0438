@@ -1,0 +1,147 @@
+---
+title: Adding a New TTS Backend
+description: How to integrate a new Text-to-Speech engine into Open-LLM-VTuber.
+---
+
+TTS backends receive a text string and return the path to a generated audio file. The framework streams these paths to the client via WebSocket.
+
+## The TTSInterface
+
+All TTS backends implement `TTSInterface` from `src/open_llm_vtuber/tts/tts_interface.py`:
+
+```python
+class TTSInterface(metaclass=abc.ABCMeta):
+
+    async def async_generate_audio(
+        self, text: str, file_name_no_ext=None
+    ) -> str:
+        """
+        Asynchronously generate audio. By default, runs generate_audio in a
+        thread. Override for a native async implementation.
+
+        Returns:
+            str: path to the generated audio file
+        """
+        return await asyncio.to_thread(self.generate_audio, text, file_name_no_ext)
+
+    @abc.abstractmethod
+    def generate_audio(self, text: str, file_name_no_ext=None) -> str:
+        """
+        Generate speech audio file.
+
+        Args:
+            text: The text to synthesize.
+            file_name_no_ext: Optional filename without extension.
+
+        Returns:
+            str: path to the generated audio file
+        """
+        raise NotImplementedError
+
+    def remove_file(self, filepath: str, verbose: bool = True) -> None:
+        """Remove a cached audio file after it has been played."""
+        ...
+
+    def generate_cache_file_name(
+        self, file_name_no_ext=None, file_extension="wav"
+    ) -> str:
+        """
+        Generate a path inside the cache/ directory.
+        Returns e.g. "cache/temp.wav".
+        """
+        ...
+```
+
+<Note>
+  `generate_cache_file_name` is a convenience helper that creates the `cache/` directory if it does not exist and returns a normalized path. Use it inside `generate_audio` to pick the output path.
+</Note>
+
+## Steps to Add a New TTS Backend
+
+<Steps>
+  <Step title="Create the implementation file">
+    Create `src/open_llm_vtuber/tts/my_tts.py`:
+
+    ```python
+    from loguru import logger
+    from .tts_interface import TTSInterface
+
+
+    class TTSEngine(TTSInterface):
+        """TTS backend using MyTTSLibrary."""
+
+        def __init__(self, voice: str, api_key: str, **kwargs):
+            self.voice = voice
+            self.api_key = api_key
+            logger.info(f"Initialized MyTTS with voice: {voice}")
+
+        def generate_audio(self, text: str, file_name_no_ext=None) -> str:
+            output_path = self.generate_cache_file_name(
+                file_name_no_ext, file_extension="mp3"
+            )
+            # Call your TTS API and write to output_path
+            audio_bytes = my_tts_api(text, voice=self.voice, key=self.api_key)
+            with open(output_path, "wb") as f:
+                f.write(audio_bytes)
+            return output_path
+    ```
+
+    Follow the naming convention `TTSEngine` used by all existing TTS implementations.
+  </Step>
+
+  <Step title="Register in the factory">
+    Open `src/open_llm_vtuber/tts/tts_factory.py` and add a branch in `TTSFactory.get_tts_engine`:
+
+    ```python
+    elif engine_type == "my_tts":
+        from .my_tts import TTSEngine as MyTTSEngine
+
+        return MyTTSEngine(
+            voice=kwargs.get("voice"),
+            api_key=kwargs.get("api_key"),
+        )
+    ```
+  </Step>
+
+  <Step title="Add a config class">
+    Open `src/open_llm_vtuber/config_manager/tts.py` and add a Pydantic model:
+
+    ```python
+    class MyTTSConfig(BaseModel):
+        voice: str = "default"
+        api_key: str = ""
+    ```
+
+    Then add `my_tts: Optional[MyTTSConfig] = None` to `TTSConfig` and register the discriminator value `"my_tts"`.
+  </Step>
+
+  <Step title="Update the default configuration">
+    Add an example block to both default config templates:
+
+    ```yaml
+    tts_config:
+      tts_model: my_tts
+      my_tts:
+        voice: default
+        api_key: ""
+    ```
+  </Step>
+</Steps>
+
+## Existing Backends for Reference
+
+| Key | Notes |
+|---|---|
+| `edge_tts` | Free, high-quality, no API key needed |
+| `azure_tts` | Azure Cognitive Services, supports SSML |
+| `openai_tts` | OpenAI-compatible endpoint (default: local Kokoro) |
+| `gpt_sovits_tts` | Voice cloning via GPT-SoVITS Gradio API |
+| `elevenlabs_tts` | ElevenLabs cloud API |
+| `cartesia_tts` | Cartesia Sonic streaming TTS |
+| `sherpa_onnx_tts` | Fully offline ONNX TTS |
+| `melo_tts` | Offline multilingual MeloTTS |
+| `piper_tts` | Lightweight local neural TTS |
+
+<Warning>
+  The `file_name_no_ext` parameter is deprecated and optional. Always call `generate_cache_file_name` to build the output path so audio lands in `cache/` where the WebSocket layer can serve it.
+</Warning>

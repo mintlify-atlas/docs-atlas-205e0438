@@ -1,0 +1,143 @@
+---
+title: "Live2D Model"
+description: "Import and use custom Live2D models with Open-LLM-VTuber."
+---
+
+Open-LLM-VTuber uses the Live2D Cubism SDK to render animated avatars in real time. You can replace or add models by dropping model files into the right directory and registering them in `model_dict.json`.
+
+<Warning>
+  The Live2D Cubism SDK is free for non-commercial use. If you plan to use Open-LLM-VTuber commercially, review the [Live2D Proprietary Software License](https://www.live2d.com/en/sdk/license/) before distributing.
+</Warning>
+
+## Directory structure
+
+Place each model in its own folder inside `live2d-models/`:
+
+```
+live2d-models/
+└── <model-name>/
+    ├── <model-name>.model3.json   ← required
+    ├── <model-name>.moc3
+    ├── textures/
+    └── motions/
+```
+
+The `.model3.json` file is the entry point the renderer loads. It references all other assets (physics, expressions, motions, textures) using relative paths, so keep the entire folder intact.
+
+## Register the model
+
+<Steps>
+  <Step title="Copy your model folder">
+    Place the model folder inside `live2d-models/`. For example:
+
+    ```
+    live2d-models/my_character/runtime/my_character.model3.json
+    ```
+  </Step>
+
+  <Step title="Add an entry to model_dict.json">
+    Open `model_dict.json` in the project root and append an object for your model. Here is the built-in `mao_pro` entry as a reference:
+
+    ```json
+    [
+      {
+        "name": "mao_pro",
+        "description": "",
+        "url": "/live2d-models/mao_pro/runtime/mao_pro.model3.json",
+        "kScale": 0.5,
+        "initialXshift": 0,
+        "initialYshift": 0,
+        "kXOffset": 1150,
+        "idleMotionGroupName": "Idle",
+        "emotionMap": {
+          "neutral": 0,
+          "anger": 2,
+          "disgust": 2,
+          "fear": 1,
+          "joy": 3,
+          "smirk": 3,
+          "sadness": 1,
+          "surprise": 3
+        },
+        "tapMotions": {
+          "HitAreaHead": { "": 1 },
+          "HitAreaBody": { "": 1 }
+        }
+      }
+    ]
+    ```
+
+    Add your own entry:
+
+    ```json
+    {
+      "name": "my_character",
+      "description": "My custom character",
+      "url": "/live2d-models/my_character/runtime/my_character.model3.json",
+      "kScale": 0.5,
+      "initialXshift": 0,
+      "initialYshift": 0,
+      "kXOffset": 1150,
+      "idleMotionGroupName": "Idle",
+      "emotionMap": {
+        "neutral": 0,
+        "joy": 1,
+        "sadness": 2,
+        "anger": 3
+      },
+      "tapMotions": {
+        "HitAreaHead": { "": 1 },
+        "HitAreaBody": { "": 1 }
+      }
+    }
+    ```
+
+    The `name` field must be unique — it is the identifier used throughout the application.
+  </Step>
+
+  <Step title="Set the model in your character config">
+    In `conf.yaml` (or a character YAML file in `characters/`), set `live2d_model_name` to the `name` value you registered:
+
+    ```yaml
+    character_config:
+      live2d_model_name: 'my_character'
+    ```
+  </Step>
+
+  <Step title="Restart the server">
+    Stop and restart `uv run run_server.py`. The new model will appear in the frontend.
+  </Step>
+</Steps>
+
+## model_dict.json field reference
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | string | Unique identifier referenced in `live2d_model_name` |
+| `url` | string | Server path to the `.model3.json` file |
+| `kScale` | float | Scale factor — adjust if the model appears too large or small |
+| `initialXshift` | int | Horizontal offset in pixels at startup |
+| `initialYshift` | int | Vertical offset in pixels at startup |
+| `kXOffset` | int | X-axis canvas offset used by the renderer |
+| `idleMotionGroupName` | string | Motion group that plays when the character is idle |
+| `emotionMap` | object | Maps expression keyword names to expression file indices |
+| `tapMotions` | object | Motion reactions when the user taps hit areas |
+
+## emotionMap
+
+The `emotionMap` object maps lowercase keyword strings to integer indices that correspond to expression entries in the model's expression list (defined inside `.model3.json`). The LLM outputs these keywords in square brackets (e.g., `[joy]`) and the frontend triggers the matching expression.
+
+Expression indices are zero-based and must match the order of expressions defined in your `.model3.json`. Open the file and look for the `Expressions` array to find the correct indices.
+
+```json
+"emotionMap": {
+  "neutral": 0,
+  "joy": 1,
+  "sadness": 2,
+  "anger": 3
+}
+```
+
+<Tip>
+  Multiple keywords can map to the same expression index. This lets the LLM use natural synonyms (e.g., both `"disgust"` and `"anger"` can map to the same expression).
+</Tip>

@@ -1,0 +1,69 @@
+---
+title: "Voice Interruption"
+description: "Interrupt the AI mid-speech without headphones using VAD and audio source separation."
+---
+
+Voice interruption lets you cut off the AI while it is speaking and have it respond to your new input immediately — even when you are using speakers instead of headphones. This works through a combination of Voice Activity Detection (VAD) and audio source separation that filters out the AI's own voice.
+
+## How it works
+
+When the AI is speaking through your speakers, its audio is picked up by your microphone. Without mitigation, this creates an echo loop where the AI responds to its own output. Open-LLM-VTuber addresses this by:
+
+1. **Audio source separation** — The system identifies and removes the AI's TTS audio from the microphone stream so only your voice triggers detection.
+2. **Silero VAD** — A neural voice activity detector runs on the cleaned audio. When it detects your voice with sufficient confidence, it sends an interrupt signal and clears the current TTS queue.
+
+## Enabling VAD
+
+VAD is disabled by default. Set `vad_model` to `silero_vad` in `conf.yaml`:
+
+```yaml
+vad_config:
+  vad_model: 'silero_vad'
+
+  silero_vad:
+    orig_sr: 16000       # Input audio sample rate
+    target_sr: 16000     # Processing sample rate
+    prob_threshold: 0.4  # Speech probability threshold (0.0–1.0)
+    db_threshold: 60     # Minimum volume in dB to consider as speech
+    required_hits: 3     # Consecutive positive detections before triggering
+    required_misses: 24  # Consecutive negative detections before resetting
+    smoothing_window: 5  # Window size for probability smoothing
+```
+
+## Parameter reference
+
+| Parameter | Default | Description |
+|---|---|---|
+| `prob_threshold` | `0.4` | Minimum speech probability (0–1) to count as a positive detection |
+| `db_threshold` | `60` | Minimum decibel level for the audio to be evaluated at all |
+| `required_hits` | `3` | Number of consecutive positive frames before speech is confirmed |
+| `required_misses` | `24` | Number of consecutive negative frames before speech end is confirmed |
+| `smoothing_window` | `5` | Number of frames averaged for probability smoothing |
+
+## Tuning sensitivity
+
+<AccordionGroup>
+  <Accordion title="Too sensitive — AI interrupts itself or triggers on background noise">
+    Raise `prob_threshold` (e.g., `0.6`) and/or raise `db_threshold` (e.g., `70`) to require louder and more confident speech before triggering. Increase `required_hits` to demand more consecutive detections.
+  </Accordion>
+
+  <Accordion title="Not sensitive enough — your voice is not detected or cuts out">
+    Lower `prob_threshold` (e.g., `0.3`) or `db_threshold` (e.g., `50`). Reduce `required_hits` to `2`. Increase `smoothing_window` for more stable detection in noisy environments.
+  </Accordion>
+
+  <Accordion title="Interruption triggers too slowly">
+    Reduce `required_hits` to `2` so fewer consecutive frames are needed to confirm speech. Lowering `smoothing_window` makes the detector react faster.
+  </Accordion>
+
+  <Accordion title="Speech end detection is too aggressive — responses cut off mid-sentence">
+    Increase `required_misses` (e.g., `36`) to wait longer before considering speech to have ended.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  If you are using headphones, the echo cancellation is less critical. You can use a lower `db_threshold` and `prob_threshold` for snappier response.
+</Tip>
+
+<Note>
+  Silero VAD requires the `silero_vad` Python package. It is included in the default dependencies. The model runs fully locally — no network calls are made during detection.
+</Note>

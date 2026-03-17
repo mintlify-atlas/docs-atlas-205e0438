@@ -1,0 +1,119 @@
+---
+title: "Text to Speech (TTS)"
+description: "Overview of the Text-to-Speech engines supported by Open LLM VTuber, with setup guidance and a comparison of all available providers."
+---
+
+Text to Speech (TTS) converts the AI's text responses into audio that plays through your browser or application. Once the LLM produces a reply, each sentence is passed through the TTS preprocessor (which cleans the text), then handed to the TTS engine, which synthesises the audio.
+
+## Selecting a TTS engine
+
+TTS is configured inside `character_config.tts_config` in your `conf.yaml`. The `tts_model` key selects which engine to use; engine-specific settings live under a key matching that name.
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'edge_tts'   # engine selector
+    edge_tts:
+      voice: 'en-US-AvaMultilingualNeural'
+```
+
+Valid values for `tts_model`:
+
+| Value | Engine page |
+|---|---|
+| `edge_tts` | [Edge TTS](/user-guide/tts/edge-tts) |
+| `sherpa_onnx_tts` | [Sherpa-ONNX TTS](/user-guide/tts/sherpa-onnx) |
+| `azure_tts` | [Azure TTS](/user-guide/tts/azure-tts) |
+| `gpt_sovits_tts` | [GPT-SoVITS](/user-guide/tts/gpt-sovits) |
+| `cosyvoice_tts` | [CosyVoice](/user-guide/tts/cosyvoice) |
+| `cosyvoice2_tts` | [CosyVoice 2](/user-guide/tts/cosyvoice) |
+| `melo_tts` | [MeloTTS](/user-guide/tts/melo-tts) |
+| `fish_api_tts` | [Fish Audio](/user-guide/tts/fish-audio) |
+| `elevenlabs_tts` | [ElevenLabs](/user-guide/tts/elevenlabs) |
+| `piper_tts` | [Piper TTS](/user-guide/tts/piper) |
+| `coqui_tts` | [Coqui TTS](/user-guide/tts/coqui) |
+
+## Engine comparison
+
+| Engine | Offline | Voice cloning | Cost | Notes |
+|---|---|---|---|---|
+| **Edge TTS** (default) | No | No | Free | Uses Microsoft Edge's cloud API. Good quality, many languages. |
+| **Sherpa-ONNX** | Yes | No | Free | Fully local ONNX inference. Best offline option for low-latency use. |
+| **Piper TTS** | Yes | No | Free | Lightweight offline ONNX models. Fast and low resource usage. |
+| **MeloTTS** | Yes | No | Free | Runs locally. Good English and Chinese support. |
+| **Coqui TTS** | Yes | Yes (XTTS v2) | Free | Local models, large model library. Multi-speaker voice cloning available. |
+| **GPT-SoVITS** | Self-hosted | Yes | Free | High-quality voice cloning. Requires a separate GPT-SoVITS server. |
+| **CosyVoice** | Self-hosted | Yes | Free | Connects to a CosyVoice Gradio server you run separately. |
+| **Azure TTS** | No | No | Pay-per-use | Microsoft Azure cloud API. High quality, 100+ languages. |
+| **Fish Audio** | No | Yes | Pay-per-use | Cloud API with voice cloning via reference ID. |
+| **ElevenLabs** | No | Yes | Pay-per-use | High-quality cloud voices with voice design controls. |
+
+## TTS preprocessor
+
+Before text is sent to the TTS engine, it passes through the TTS preprocessor. These settings are configured separately under `tts_preprocessor_config`:
+
+```yaml
+tts_preprocessor_config:
+  remove_special_char: true
+  ignore_brackets: true
+  ignore_parentheses: true
+  ignore_asterisks: true
+  ignore_angle_brackets: true
+
+  translator_config:
+    translate_audio: false
+    translate_provider: 'deeplx'
+    deeplx:
+      deeplx_target_lang: 'JA'
+      deeplx_api_endpoint: 'http://localhost:1188/v2/translate'
+```
+
+<ParamField path="remove_special_char" type="boolean" default="true">
+  Strip emoji and other special characters from text before synthesis. Prevents TTS engines from attempting to vocalise emoji names.
+</ParamField>
+
+<ParamField path="ignore_brackets" type="boolean" default="true">
+  Skip text enclosed in square brackets `[like this]`. Useful for action annotations or stage directions that should not be spoken.
+</ParamField>
+
+<ParamField path="ignore_parentheses" type="boolean" default="true">
+  Skip text enclosed in parentheses `(like this)`. Commonly used for inner thoughts or expressions.
+</ParamField>
+
+<ParamField path="ignore_asterisks" type="boolean" default="true">
+  Skip text wrapped in asterisks `*like this*`. Often used for roleplay actions.
+</ParamField>
+
+<ParamField path="ignore_angle_brackets" type="boolean" default="true">
+  Skip text wrapped in angle brackets `<like this>`. Useful for filtering out XML-style tags or LLM tool output.
+</ParamField>
+
+<ParamField path="translator_config.translate_audio" type="boolean" default="false">
+  When enabled, the text is translated before synthesis, so the AI speaks in a different language than it writes. Requires a running DeepLX or Tencent translation endpoint.
+</ParamField>
+
+<Warning>
+  `translate_audio` requires a deployed DeepLX instance at the configured endpoint. Enabling it without a running translation server will cause errors.
+</Warning>
+
+## Recommendations by use case
+
+<Tip>
+  **Quick start / no setup**: Use `edge_tts` (the default). It requires no installation and produces natural-sounding speech in many languages.
+</Tip>
+
+<Tip>
+  **Fully offline**: Use `sherpa_onnx_tts` or `piper_tts`. Both run entirely on your machine with no network requests after you download the model files.
+</Tip>
+
+<Tip>
+  **Voice cloning**: Use `gpt_sovits_tts` for high-quality results (requires running a GPT-SoVITS server), or `coqui_tts` with `xtts_v2` for a fully self-contained local setup.
+</Tip>
+
+<Tip>
+  **Best cloud quality**: Use `elevenlabs_tts` for premium voice quality, or `azure_tts` for enterprise-grade reliability and broad language support.
+</Tip>
+
+<Note>
+  All TTS engines output audio that is cached in the `cache/` directory and streamed to the client. The cache files are automatically cleaned up after playback.
+</Note>

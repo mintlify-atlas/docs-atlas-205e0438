@@ -1,0 +1,289 @@
+---
+title: "Sherpa-ONNX ASR"
+description: "Configure the Sherpa-ONNX ASR engine — the default offline speech recognition backend for Open LLM VTuber."
+---
+
+Sherpa-ONNX is the default ASR engine. It runs fully offline using ONNX Runtime, supports multiple model architectures, and ships with automatic model download for the SenseVoice model.
+
+<Note>
+  The SenseVoice model (`sense_voice` model type) downloads automatically on first run. All other model types require you to download model files manually from the [sherpa-onnx ASR models release page](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models).
+</Note>
+
+## Installation
+
+<Steps>
+  <Step title="Install the sherpa-onnx package">
+    ```bash
+    pip install sherpa-onnx
+    ```
+  </Step>
+  <Step title="Set asr_model in conf.yaml">
+    ```yaml
+    character_config:
+      asr_config:
+        asr_model: 'sherpa_onnx_asr'
+    ```
+  </Step>
+  <Step title="Configure the engine (default SenseVoice config)">
+    ```yaml
+    sherpa_onnx_asr:
+      model_type: 'sense_voice'
+      sense_voice: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx'
+      tokens: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt'
+      num_threads: 4
+      use_itn: True
+      provider: 'cpu'
+    ```
+    The model files will be downloaded automatically if they are not present at the configured paths.
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+    On first run with `sense_voice`, the model archive is fetched from GitHub and extracted to `./models/`.
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  asr_config:
+    asr_model: 'sherpa_onnx_asr'
+    sherpa_onnx_asr:
+      model_type: 'sense_voice'
+      sense_voice: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx'
+      tokens: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt'
+      num_threads: 4
+      use_itn: True
+      provider: 'cpu'
+```
+
+<ParamField path="model_type" type="string" required>
+  The architecture of the ASR model. One of: `sense_voice`, `transducer`, `paraformer`, `nemo_ctc`, `wenet_ctc`, `whisper`, `tdnn_ctc`, `fire_red_asr`.
+</ParamField>
+
+<ParamField path="tokens" type="string" required>
+  Path to the `tokens.txt` file. Required for all model types.
+</ParamField>
+
+<ParamField path="num_threads" type="integer" default="4">
+  Number of threads for neural network computation.
+</ParamField>
+
+<ParamField path="use_itn" type="boolean" default="true">
+  Enable Inverse Text Normalization. Converts spoken-form numbers and punctuation into written form (e.g., "three point five" → "3.5"). Only relevant for SenseVoice models — set to `False` for all other model types.
+</ParamField>
+
+<ParamField path="provider" type="string" default="cpu">
+  Inference backend. `cpu` works everywhere. `cuda` requires a CUDA-capable GPU and the CUDA build of sherpa-onnx.
+</ParamField>
+
+<ParamField path="decoding_method" type="string" default="greedy_search">
+  Decoding strategy: `greedy_search` or `modified_beam_search`. Optional.
+</ParamField>
+
+<ParamField path="debug" type="boolean" default="false">
+  Print debug information from sherpa-onnx. Optional.
+</ParamField>
+
+<ParamField path="blank_penalty" type="number" default="0.0">
+  Penalty applied to the blank symbol during decoding. Optional.
+</ParamField>
+
+## Model types
+
+### sense_voice (default)
+
+The SenseVoice model supports Chinese (Mandarin), English, Japanese, Korean, and Cantonese. It is the recommended choice for most users.
+
+```yaml
+sherpa_onnx_asr:
+  model_type: 'sense_voice'
+  sense_voice: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx'
+  tokens: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt'
+  use_itn: True
+```
+
+<ParamField path="sense_voice" type="string" required>
+  Path to the SenseVoice `model.onnx` or `model.int8.onnx` file.
+</ParamField>
+
+### transducer
+
+Streamable transducer models (encoder + decoder + joiner architecture).
+
+```yaml
+sherpa_onnx_asr:
+  model_type: 'transducer'
+  encoder: './models/my-transducer/encoder.onnx'
+  decoder: './models/my-transducer/decoder.onnx'
+  joiner: './models/my-transducer/joiner.onnx'
+  tokens: './models/my-transducer/tokens.txt'
+  use_itn: False
+```
+
+<ParamField path="encoder" type="string" required>
+  Path to the encoder ONNX model.
+</ParamField>
+
+<ParamField path="decoder" type="string" required>
+  Path to the decoder ONNX model.
+</ParamField>
+
+<ParamField path="joiner" type="string" required>
+  Path to the joiner ONNX model.
+</ParamField>
+
+Optional hotword parameters:
+
+<ParamField path="hotwords_file" type="string">
+  Path to a hotwords file to boost recognition of specific terms.
+</ParamField>
+
+<ParamField path="hotwords_score" type="number" default="1.5">
+  Score boost applied to hotwords.
+</ParamField>
+
+<ParamField path="modeling_unit" type="string">
+  Modeling unit used by the hotwords (if applicable).
+</ParamField>
+
+<ParamField path="bpe_vocab" type="string">
+  Path to BPE vocabulary file (required when using BPE-based hotwords).
+</ParamField>
+
+### paraformer
+
+Non-autoregressive CTC-based model. Good for Mandarin Chinese.
+
+```yaml
+sherpa_onnx_asr:
+  model_type: 'paraformer'
+  paraformer: './models/my-paraformer/model.onnx'
+  tokens: './models/my-paraformer/tokens.txt'
+  use_itn: False
+```
+
+<ParamField path="paraformer" type="string" required>
+  Path to the paraformer ONNX model.
+</ParamField>
+
+### nemo_ctc
+
+NVIDIA NeMo CTC models exported to ONNX.
+
+```yaml
+sherpa_onnx_asr:
+  model_type: 'nemo_ctc'
+  nemo_ctc: './models/my-nemo/model.onnx'
+  tokens: './models/my-nemo/tokens.txt'
+  use_itn: False
+```
+
+<ParamField path="nemo_ctc" type="string" required>
+  Path to the NeMo CTC ONNX model.
+</ParamField>
+
+### wenet_ctc
+
+WeNet CTC models exported to ONNX.
+
+```yaml
+sherpa_onnx_asr:
+  model_type: 'wenet_ctc'
+  wenet_ctc: './models/my-wenet/model.onnx'
+  tokens: './models/my-wenet/tokens.txt'
+  use_itn: False
+```
+
+<ParamField path="wenet_ctc" type="string" required>
+  Path to the WeNet CTC ONNX model.
+</ParamField>
+
+### whisper
+
+OpenAI Whisper models exported to ONNX format via sherpa-onnx.
+
+```yaml
+sherpa_onnx_asr:
+  model_type: 'whisper'
+  whisper_encoder: './models/sherpa-onnx-whisper-small/small-encoder.int8.onnx'
+  whisper_decoder: './models/sherpa-onnx-whisper-small/small-decoder.int8.onnx'
+  tokens: './models/sherpa-onnx-whisper-small/small-tokens.txt'
+  whisper_language: 'en'
+  whisper_task: 'transcribe'
+  use_itn: False
+```
+
+<ParamField path="whisper_encoder" type="string" required>
+  Path to the Whisper encoder ONNX model.
+</ParamField>
+
+<ParamField path="whisper_decoder" type="string" required>
+  Path to the Whisper decoder ONNX model.
+</ParamField>
+
+<ParamField path="whisper_language" type="string">
+  Language code (e.g., `en`, `zh`). Leave empty for auto-detection.
+</ParamField>
+
+<ParamField path="whisper_task" type="string" default="transcribe">
+  Task for Whisper: `transcribe` or `translate`.
+</ParamField>
+
+<ParamField path="whisper_tail_paddings" type="integer" default="-1">
+  Tail padding frames. Use `-1` for the default.
+</ParamField>
+
+### tdnn_ctc
+
+TDNN CTC models (e.g., the yesno recipe).
+
+```yaml
+sherpa_onnx_asr:
+  model_type: 'tdnn_ctc'
+  tdnn_model: './models/my-tdnn/model.onnx'
+  tokens: './models/my-tdnn/tokens.txt'
+  use_itn: False
+```
+
+<ParamField path="tdnn_model" type="string" required>
+  Path to the TDNN CTC ONNX model.
+</ParamField>
+
+### fire_red_asr
+
+FireRedASR — a high-performance model with strong Chinese and English support, including dialect recognition.
+
+```yaml
+sherpa_onnx_asr:
+  model_type: 'fire_red_asr'
+  fire_red_asr_encoder: './models/fire-red-asr/encoder.onnx'
+  fire_red_asr_decoder: './models/fire-red-asr/decoder.onnx'
+  tokens: './models/fire-red-asr/tokens.txt'
+  use_itn: False
+```
+
+<ParamField path="fire_red_asr_encoder" type="string" required>
+  Path to the FireRedASR encoder ONNX model.
+</ParamField>
+
+<ParamField path="fire_red_asr_decoder" type="string" required>
+  Path to the FireRedASR decoder ONNX model.
+</ParamField>
+
+## GPU acceleration
+
+<Warning>
+  Using `provider: 'cuda'` requires the CUDA build of sherpa-onnx and a compatible CUDA installation. If the `CUDAExecutionProvider` is not available in your ONNX Runtime installation, sherpa-onnx will automatically fall back to CPU.
+</Warning>
+
+To enable CUDA inference:
+
+1. Install the CUDA-enabled sherpa-onnx package (check the [sherpa-onnx documentation](https://k2-fsa.github.io/sherpa/onnx/index.html) for the correct package name).
+2. Set `provider: 'cuda'` in your config.
+
+## Downloading models manually
+
+Models are available on the [sherpa-onnx ASR models release page](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models). Download and extract the archive into your `./models/` directory, then update the model paths in your config.

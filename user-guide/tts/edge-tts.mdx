@@ -1,0 +1,114 @@
+---
+title: "Edge TTS"
+description: "Configure Microsoft Edge TTS — the default free cloud TTS engine in Open LLM VTuber."
+---
+
+Edge TTS uses Microsoft's text-to-speech service via the Edge browser's API. It is the default TTS engine for Open LLM VTuber and requires no API key or account. Audio quality is high with a wide selection of voices across many languages.
+
+<Warning>
+  Edge TTS requires an internet connection. If the service is unreachable from your region (e.g., due to network restrictions), audio generation will fail silently and return `None`. Consider using an offline engine such as [Sherpa-ONNX](/user-guide/tts/sherpa-onnx) or [Piper](/user-guide/tts/piper) if you need offline support.
+</Warning>
+
+## Setup
+
+<Steps>
+  <Step title="Ensure edge-tts is installed">
+    The `edge-tts` package is included in the default Open LLM VTuber dependencies. No additional installation is needed if you used `uv sync`.
+
+    To verify:
+    ```bash
+    edge-tts --list-voices
+    ```
+  </Step>
+  <Step title="Set tts_model to edge_tts">
+    In your `conf.yaml`:
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'edge_tts'
+    ```
+    This is already the default. No change is needed if you have not modified `tts_model`.
+  </Step>
+  <Step title="Choose a voice">
+    Set the `voice` field under `edge_tts` to any voice name returned by `edge-tts --list-voices`:
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'edge_tts'
+        edge_tts:
+          voice: 'en-US-AvaMultilingualNeural'
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'edge_tts'
+    edge_tts:
+      voice: 'en-US-AvaMultilingualNeural'
+```
+
+<ParamField path="voice" type="string" required>
+  The voice name to use for synthesis. Must be a valid Edge TTS voice identifier.
+
+  Examples:
+  - `en-US-AvaMultilingualNeural` — US English, female (default)
+  - `en-US-EmmaMultilingualNeural` — US English, female
+  - `en-US-JennyNeural` — US English, female
+  - `zh-CN-XiaoxiaoNeural` — Mandarin Chinese, female
+  - `ja-JP-NanamiNeural` — Japanese, female
+
+  Run `edge-tts --list-voices` in your terminal to see all available voices for every supported language.
+</ParamField>
+
+## Finding voices
+
+To list all available voices, run:
+
+```bash
+edge-tts --list-voices
+```
+
+The output format is:
+```
+Name: en-US-AvaMultilingualNeural
+Gender: Female
+Locale: en-US
+ContentCategories: General
+VoicePersonalities: Expressive,Caring,Cheerful
+```
+
+You can filter by locale to find voices for a specific language:
+
+```bash
+edge-tts --list-voices | grep zh-CN
+```
+
+<Tip>
+  Voices with `Multilingual` in their name (e.g., `en-US-AvaMultilingualNeural`) can handle mixed-language input more gracefully than locale-specific voices.
+</Tip>
+
+## Language examples
+
+| Language | Voice |
+|---|---|
+| US English | `en-US-AvaMultilingualNeural` |
+| British English | `en-GB-SoniaNeural` |
+| Mandarin Chinese | `zh-CN-XiaoxiaoNeural` |
+| Japanese | `ja-JP-NanamiNeural` |
+| Korean | `ko-KR-SunHiNeural` |
+| German | `de-DE-KatjaNeural` |
+| French | `fr-FR-DeniseNeural` |
+| Spanish | `es-ES-ElviraNeural` |
+
+<Note>
+  Edge TTS generates audio in MP3 format and caches it in the `cache/` directory. Files are cleaned up automatically after playback.
+</Note>

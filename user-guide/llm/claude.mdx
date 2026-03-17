@@ -1,0 +1,76 @@
+---
+title: Anthropic Claude
+description: Connect Open LLM VTuber to Anthropic's Claude models via the Anthropic API.
+---
+
+The `claude_llm` backend connects to Anthropic's API to use Claude models. Claude is known for strong instruction-following, nuanced conversational ability, and a large context window.
+
+## When to use Claude
+
+- You have an Anthropic API key
+- You want strong conversational quality with low hallucination rates
+- You need a large context window for long conversation histories
+
+## Prerequisites
+
+<Steps>
+  <Step title="Create an Anthropic account">
+    Sign up at [console.anthropic.com](https://console.anthropic.com) and add a payment method or claim free credits.
+  </Step>
+  <Step title="Generate an API key">
+    Go to **API Keys** in the Anthropic Console and create a new key. Copy it immediately.
+  </Step>
+  <Step title="Add the key to conf.yaml">
+    Replace `'YOUR API KEY HERE'` in the config with your actual Anthropic API key.
+  </Step>
+</Steps>
+
+## Configuration
+
+<CodeGroup>
+
+```yaml conf.yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        llm_provider: 'claude_llm'
+
+    llm_configs:
+      claude_llm:
+        base_url: 'https://api.anthropic.com'
+        llm_api_key: 'YOUR API KEY HERE'
+        model: 'claude-3-haiku-20240307'
+```
+
+</CodeGroup>
+
+## Parameters
+
+<ParamField path="base_url" type="string" default="https://api.anthropic.com">
+  The base URL for the Anthropic API. You do not need to change this unless you are routing traffic through a proxy.
+</ParamField>
+
+<ParamField path="llm_api_key" type="string" required>
+  Your Anthropic API key. Keep this out of version control.
+</ParamField>
+
+<ParamField path="model" type="string" required default="claude-3-haiku-20240307">
+  The Claude model to use. Common options:
+  - `claude-3-haiku-20240307` — fast and cost-efficient, good for real-time chat
+  - `claude-3-5-sonnet-20241022` — balanced performance and quality
+  - `claude-3-5-haiku-20241022` — faster and more affordable next-generation model
+  - `claude-3-opus-20240229` — highest capability, highest cost
+</ParamField>
+
+<Note>
+The `interrupt_method` for Claude is fixed at `"user"` because the Anthropic API does not support inserting system messages at arbitrary positions in the conversation history.
+</Note>
+
+<Warning>
+Never commit your API key to a public repository. Revoke compromised keys immediately from the Anthropic Console.
+</Warning>
+
+<Tip>
+`claude-3-haiku-20240307` is the fastest and cheapest Claude model available and handles real-time VTuber conversations well. Use a Sonnet or Opus model if you need higher-quality, more nuanced responses.
+</Tip>

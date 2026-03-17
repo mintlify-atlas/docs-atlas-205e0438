@@ -1,0 +1,126 @@
+---
+title: Contributing
+description: How to contribute code, bug reports, and feature requests to Open-LLM-VTuber.
+---
+
+Contributions of all kinds are welcome — bug fixes, new backends, documentation improvements, and more.
+
+## Before You Start
+
+- Search [existing issues](https://github.com/Open-LLM-VTuber/Open-LLM-VTuber/issues) to avoid duplicate reports.
+- For significant changes, open an issue first to discuss the approach before investing time in an implementation.
+- Read the [architecture overview](/development/architecture) to understand how the codebase is structured.
+
+## Development Setup
+
+See the [Development Overview](/development/overview) page for full prerequisites and setup instructions.
+
+## Workflow
+
+<Steps>
+  <Step title="Fork and clone">
+    Fork the repository on GitHub, then clone your fork:
+
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/Open-LLM-VTuber.git
+    cd Open-LLM-VTuber
+    uv sync
+    ```
+  </Step>
+
+  <Step title="Create a branch">
+    Create a descriptive branch off `main`:
+
+    ```bash
+    git checkout -b feat/add-whisper-large-asr
+    # or
+    git checkout -b fix/tts-cache-race-condition
+    ```
+  </Step>
+
+  <Step title="Make your changes">
+    Follow the patterns in existing code:
+
+    - New engines go in the appropriate subdirectory (`asr/`, `tts/`, `agent/`).
+    - Register in the factory class.
+    - Add a Pydantic config class in `config_manager/`.
+    - Update both default config templates.
+    - Follow the `_handle_*` naming convention for WebSocket handlers.
+  </Step>
+
+  <Step title="Run linting and formatting">
+    ```bash
+    ruff check .
+    ruff format .
+    ```
+
+    Or run all pre-commit hooks at once:
+
+    ```bash
+    pre-commit run --all-files
+    ```
+
+    The CI pipeline runs these same checks and will fail on any lint or format error.
+  </Step>
+
+  <Step title="Test your changes">
+    The project does not yet have an automated test suite for backends. Test manually by:
+
+    1. Starting the server with `uv run run_server.py --verbose`.
+    2. Opening the frontend at `http://localhost:12393`.
+    3. Switching to your new backend via `conf.yaml` or the web tool.
+    4. Verifying the full voice conversation loop works end-to-end.
+  </Step>
+
+  <Step title="Commit your changes">
+    Write clear, concise commit messages:
+
+    ```bash
+    git add .
+    git commit -m "feat: add MyASR backend for offline transcription"
+    ```
+  </Step>
+
+  <Step title="Submit a pull request">
+    Push to your fork and open a pull request against the `main` branch:
+
+    ```bash
+    git push origin feat/add-whisper-large-asr
+    ```
+
+    In the PR description:
+    - Explain what the change does and why.
+    - Note any configuration changes or breaking changes.
+    - Include steps to test the change.
+  </Step>
+</Steps>
+
+## Code Review
+
+All pull requests are reviewed by maintainers. Expect feedback on:
+
+- Correctness and edge-case handling.
+- Adherence to existing patterns (factory registration, config class, default config).
+- Code style (Ruff must pass).
+- Documentation for non-trivial additions.
+
+Address review comments by pushing additional commits to the same branch. Avoid force-pushing once a PR is open.
+
+## Reporting Bugs
+
+Open a GitHub issue and include:
+
+- Operating system and Python version.
+- Steps to reproduce.
+- Expected vs. actual behavior.
+- Relevant log output (run with `--verbose` for debug logs).
+
+## Community
+
+- **Discord** — join the community server for questions and discussions.
+- **GitHub Discussions** — for longer design conversations.
+- **GitHub Issues** — for bugs and feature requests.
+
+<Note>
+  Configuration changes must maintain backward compatibility where possible. If a breaking change is unavoidable, document it clearly and consider adding a migration step to `upgrade.py`.
+</Note>

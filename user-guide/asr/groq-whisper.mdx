@@ -1,0 +1,96 @@
+---
+title: "Groq Whisper ASR"
+description: "Configure Groq's hosted Whisper API as the ASR engine for fast cloud-based speech recognition in Open LLM VTuber."
+---
+
+Groq Whisper uses Groq's cloud API to run Whisper models on dedicated Language Processing Units (LPUs), delivering significantly lower transcription latency compared to running Whisper locally on CPU. This is a good choice when you want high-quality multilingual ASR without the local compute overhead.
+
+<Note>
+  This engine requires an internet connection and sends audio to Groq's servers for processing. A Groq API key is required.
+</Note>
+
+## Prerequisites
+
+1. Create a free account at [console.groq.com](https://console.groq.com).
+2. Generate an API key from the Groq Console.
+
+## Installation
+
+<Steps>
+  <Step title="Install the Groq Python client">
+    ```bash
+    pip install groq
+    ```
+  </Step>
+  <Step title="Set asr_model in conf.yaml">
+    ```yaml
+    character_config:
+      asr_config:
+        asr_model: 'groq_whisper_asr'
+    ```
+  </Step>
+  <Step title="Configure the engine">
+    ```yaml
+    groq_whisper_asr:
+      api_key: 'your-groq-api-key'
+      model: 'whisper-large-v3-turbo'
+      lang: ''
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  asr_config:
+    asr_model: 'groq_whisper_asr'
+    groq_whisper_asr:
+      api_key: ''
+      model: 'whisper-large-v3-turbo'
+      lang: ''
+```
+
+<ParamField path="api_key" type="string" required>
+  Your Groq API key. Obtain it from [console.groq.com](https://console.groq.com) under API Keys.
+</ParamField>
+
+<ParamField path="model" type="string" default="whisper-large-v3-turbo">
+  The Groq-hosted Whisper model to use. Available options:
+  - `whisper-large-v3-turbo` — fastest, recommended for real-time use
+  - `whisper-large-v3` — highest accuracy
+</ParamField>
+
+<ParamField path="lang" type="string">
+  BCP-47 language code (e.g., `en`, `zh`, `ja`). Leave empty for automatic language detection.
+</ParamField>
+
+## Model comparison
+
+| Model | Speed | Accuracy | Notes |
+|---|---|---|---|
+| `whisper-large-v3-turbo` | Fastest | Near large-v3 | Default, recommended for conversation |
+| `whisper-large-v3` | Fast | Best | Use when accuracy is the priority |
+
+<Tip>
+  For a live VTuber setup where response latency matters, `whisper-large-v3-turbo` is the better choice. The accuracy difference is small for clear speech.
+</Tip>
+
+## Security
+
+<Warning>
+  Never commit your `api_key` to version control. Anyone with access to your API key can use your Groq quota.
+</Warning>
+
+## Rate limits and costs
+
+Groq offers a free tier with generous rate limits for Whisper. Check the [Groq pricing page](https://groq.com/pricing) for current limits and costs. For typical VTuber conversational use (short utterances), the free tier is generally sufficient.
+
+<Note>
+  Unlike local ASR engines, Groq Whisper will fail gracefully if the API is unreachable. The conversation will not crash, but the current utterance will not be transcribed.
+</Note>

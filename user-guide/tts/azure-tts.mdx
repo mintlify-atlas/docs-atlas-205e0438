@@ -1,0 +1,97 @@
+---
+title: "Azure TTS"
+description: "Configure Microsoft Azure Cognitive Services Text-to-Speech in Open LLM VTuber."
+---
+
+Azure TTS uses Microsoft's Azure Cognitive Services Speech API to synthesise high-quality speech. It supports over 400 voices across more than 140 languages and locales, and offers neural voice quality with natural prosody.
+
+<Info>
+  Azure TTS is a paid cloud service. You need an active Azure subscription and a Speech resource to obtain an API key. New accounts include a free tier with a monthly character limit.
+</Info>
+
+## Setup
+
+<Steps>
+  <Step title="Create an Azure Speech resource">
+    In the Azure portal, create a **Speech** resource under Cognitive Services. Note the **API key** and **region** (e.g., `eastus`) shown on the resource's Keys and Endpoint page.
+  </Step>
+  <Step title="Set tts_model to azure_tts">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'azure_tts'
+    ```
+  </Step>
+  <Step title="Add your credentials">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'azure_tts'
+        azure_tts:
+          api_key: 'your-azure-api-key'
+          region: 'eastus'
+          voice: 'en-US-AshleyNeural'
+          pitch: '0'
+          rate: '1'
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'azure_tts'
+    azure_tts:
+      api_key: 'azure-api-key'
+      region: 'eastus'
+      voice: 'en-US-AshleyNeural'
+      pitch: '26'
+      rate: '1'
+```
+
+<ParamField path="api_key" type="string" required>
+  Your Azure Speech resource API key. Found under **Keys and Endpoint** in the Azure portal.
+</ParamField>
+
+<ParamField path="region" type="string" required>
+  Azure region where your Speech resource is deployed. Must match the resource region exactly (e.g., `eastus`, `westus2`, `eastasia`).
+</ParamField>
+
+<ParamField path="voice" type="string" required>
+  The neural voice to use for synthesis. Format: `{locale}-{VoiceName}Neural`.
+
+  Examples:
+  - `en-US-AshleyNeural` — US English, female (default)
+  - `en-US-GuyNeural` — US English, male
+  - `zh-CN-XiaoxiaoNeural` — Mandarin Chinese, female
+  - `ja-JP-NanamiNeural` — Japanese, female
+
+  A full list of voices is available in the [Azure documentation](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support).
+</ParamField>
+
+<ParamField path="pitch" type="string" default="0">
+  Pitch adjustment as a percentage string. `'0'` means no change. Positive values raise pitch (e.g., `'26'` raises by 26%), negative values lower it (e.g., `'-10'`).
+</ParamField>
+
+<ParamField path="rate" type="string" default="1">
+  Speaking rate adjustment. `'1'` means normal speed. Values above `1` increase speed; values below `1` reduce speed.
+</ParamField>
+
+## Finding voices
+
+Azure provides a voice gallery and a full list of available neural voices in its documentation. You can also query the Speech SDK or REST API to list voices for a given locale.
+
+<Tip>
+  Azure's multilingual neural voices (e.g., `en-US-AvaMultilingualNeural`) can switch between supported languages mid-sentence, which is useful for characters that mix languages.
+</Tip>
+
+<Warning>
+  Keep your API key out of version control. Consider using an environment variable or a secrets manager and referencing it in your config rather than committing the raw key.
+</Warning>

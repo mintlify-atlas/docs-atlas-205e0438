@@ -1,0 +1,108 @@
+---
+title: WebSocket API
+description: Reference for the WebSocket endpoints exposed by the Open-LLM-VTuber server.
+---
+
+The server exposes WebSocket endpoints for real-time bidirectional communication. All messages are JSON-encoded.
+
+## Endpoints
+
+### Main client endpoint
+
+```
+ws://localhost:12393/client-ws
+```
+
+This is the primary endpoint for browser and desktop clients. Every connection receives a unique `client_uid` and its own `ServiceContext` (containing ASR, TTS, and agent instances).
+
+### Proxy endpoint
+
+```
+ws://localhost:12393/proxy-ws
+```
+
+An optional pass-through proxy. Enabled by setting `enable_proxy: true` in `system_config`. The proxy forwards messages to `/client-ws` and is useful for clients that cannot connect directly (e.g., behind a network boundary).
+
+### TTS WebSocket
+
+```
+ws://localhost:12393/tts-ws
+```
+
+A standalone WebSocket for generating TTS audio without a full conversation session. Send `{"text": "..."}` and receive streaming audio paths.
+
+## Connection Flow
+
+<Steps>
+  <Step title="Connect">
+    Open a WebSocket connection to `ws://localhost:12393/client-ws`.
+  </Step>
+
+  <Step title="Receive initialization messages">
+    The server immediately sends three messages:
+
+    1. `{"type": "full-text", "text": "Connection established"}` — confirms the connection.
+    2. `{"type": "set-model-and-conf", ...}` — sends the active Live2D model and configuration.
+    3. `{"type": "group-update", "members": [], "is_owner": false}` — initial group state.
+    4. `{"type": "control", "text": "start-mic"}` — signals the client to start capturing audio.
+  </Step>
+
+  <Step title="Exchange messages">
+    Send JSON frames with a `"type"` field. The server routes each message to the appropriate handler. See [Message Types](/development/message-types) for the full list.
+  </Step>
+
+  <Step title="Disconnect">
+    Close the WebSocket. The server cancels any running conversation tasks and cleans up the session's `ServiceContext`.
+  </Step>
+</Steps>
+
+## Authentication
+
+There is **no authentication** on the WebSocket endpoints by default. The server binds to `localhost` only, which limits exposure to the local machine.
+
+<Warning>
+  If you expose the server on a non-loopback interface (e.g., `host: 0.0.0.0`), anyone on your network can connect. Enable a reverse proxy with TLS and authentication before doing so.
+</Warning>
+
+## HTTPS / WSS for Remote Access
+
+To use the server remotely with `wss://`, place a TLS-terminating reverse proxy (nginx, Caddy, Traefik) in front of the FastAPI server:
+
+```nginx
+location /client-ws {
+    proxy_pass http://127.0.0.1:12393;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+```
+
+## HTTP Endpoints
+
+In addition to WebSocket, the server exposes several HTTP endpoints:
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/` | Frontend web app |
+| `GET` | `/web-tool` | Web configuration tool |
+| `GET` | `/live2d-models/info` | List available Live2D models |
+| `POST` | `/asr` | Transcribe a WAV audio file |
+| `GET` | `/cache/*` | Serve generated audio files |
+| `GET` | `/live2d-models/*` | Serve Live2D model assets |
+| `GET` | `/bg/*` | Serve background images |
+| `GET` | `/avatars/*` | Serve avatar images |
+
+### POST /asr
+
+Accepts a `multipart/form-data` upload of a 16-bit PCM WAV file:
+
+```bash
+curl -X POST http://localhost:12393/asr \
+  -F "file=@audio.wav"
+```
+
+Response:
+
+```json
+{"text": "Hello, how are you?"}
+```

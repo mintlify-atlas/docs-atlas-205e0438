@@ -1,0 +1,109 @@
+---
+title: "Azure Speech Services ASR"
+description: "Configure Azure Cognitive Services Speech-to-Text as the ASR engine in Open LLM VTuber."
+---
+
+Azure Speech Services provides cloud-based speech recognition with support for over 100 languages and automatic language detection across multiple languages simultaneously. Using this engine requires an active Azure subscription.
+
+<Note>
+  This engine requires an active internet connection and sends audio to Microsoft's Azure cloud for processing. Do not use it if you need fully offline operation.
+</Note>
+
+## Prerequisites
+
+Before configuring the Azure ASR engine:
+
+1. Create an Azure account and an Azure Speech resource in the [Azure Portal](https://portal.azure.com).
+2. Note your **API key** (subscription key) and the **region** (e.g., `eastus`) for the resource.
+
+## Installation
+
+<Steps>
+  <Step title="Install the Azure Speech SDK">
+    ```bash
+    pip install azure-cognitiveservices-speech
+    ```
+  </Step>
+  <Step title="Set asr_model in conf.yaml">
+    ```yaml
+    character_config:
+      asr_config:
+        asr_model: 'azure_asr'
+    ```
+  </Step>
+  <Step title="Configure the engine">
+    ```yaml
+    azure_asr:
+      api_key: 'your-azure-subscription-key'
+      region: 'eastus'
+      languages: ['en-US', 'zh-CN']
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  asr_config:
+    asr_model: 'azure_asr'
+    azure_asr:
+      api_key: 'azure_api_key'
+      region: 'eastus'
+      languages: ['en-US', 'zh-CN']
+```
+
+<ParamField path="api_key" type="string" required>
+  Your Azure Speech resource subscription key. Found in the Azure Portal under your Speech resource → Keys and Endpoint.
+</ParamField>
+
+<ParamField path="region" type="string" required>
+  Azure region identifier for your Speech resource (e.g., `eastus`, `westeurope`, `japaneast`). Must match the region where the resource was created.
+</ParamField>
+
+<ParamField path="languages" type="array" required>
+  List of BCP-47 language codes to detect. Azure performs automatic language identification across the provided list. Up to 10 languages can be specified.
+
+  Examples:
+  - `['en-US']` — English (US) only
+  - `['en-US', 'zh-CN']` — English and Mandarin Chinese
+  - `['en-US', 'ja-JP', 'ko-KR']` — English, Japanese, Korean
+</ParamField>
+
+## Language codes
+
+Azure uses BCP-47 locale codes. Some common values:
+
+| Language | Code |
+|---|---|
+| English (US) | `en-US` |
+| English (UK) | `en-GB` |
+| Mandarin Chinese | `zh-CN` |
+| Traditional Chinese | `zh-TW` |
+| Japanese | `ja-JP` |
+| Korean | `ko-KR` |
+| French | `fr-FR` |
+| German | `de-DE` |
+| Spanish (Spain) | `es-ES` |
+
+For the full list of supported locales, refer to the [Azure Speech language support documentation](https://learn.microsoft.com/azure/ai-services/speech-service/language-support).
+
+## Security
+
+<Warning>
+  Never commit your `api_key` to version control. Consider using an environment variable or a separate secrets file that is excluded from your repository.
+</Warning>
+
+You can reference environment variables in your config by setting the value in your environment before starting the server:
+
+```yaml
+azure_asr:
+  api_key: 'your-key-here'
+  region: 'eastus'
+  languages: ['en-US', 'zh-CN']
+```

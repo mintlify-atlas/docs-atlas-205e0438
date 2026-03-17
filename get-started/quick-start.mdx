@@ -1,0 +1,138 @@
+---
+title: Quick start
+description: Install Open-LLM-VTuber and start your first conversation in under ten minutes.
+---
+
+## Prerequisites
+
+Before installing, you need:
+
+- **Python 3.10, 3.11, or 3.12** — Python 3.13 is not yet supported.
+- **uv** — the package manager used by this project.
+- **ffmpeg** — required for audio processing.
+- **Git** — to clone the repository.
+
+<Warning>
+Python 3.13 is not supported. Use Python 3.10, 3.11, or 3.12.
+</Warning>
+
+### Install uv
+
+<Tabs>
+  <Tab title="macOS / Linux">
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+  </Tab>
+  <Tab title="Windows (PowerShell)">
+    ```powershell
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    ```
+  </Tab>
+</Tabs>
+
+### Install ffmpeg
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    brew install ffmpeg
+    ```
+  </Tab>
+  <Tab title="Ubuntu / Debian">
+    ```bash
+    sudo apt update && sudo apt install ffmpeg
+    ```
+  </Tab>
+  <Tab title="Windows">
+    Download the latest build from [ffmpeg.org/download.html](https://ffmpeg.org/download.html) and add the `bin/` folder to your `PATH`.
+  </Tab>
+</Tabs>
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/Open-LLM-VTuber/Open-LLM-VTuber.git
+    cd Open-LLM-VTuber
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    ```bash
+    uv sync
+    ```
+
+    This creates a virtual environment and installs all required Python packages. The first run may take a few minutes.
+  </Step>
+
+  <Step title="Create your config file">
+    ```bash
+    cp config_templates/conf.default.yaml conf.yaml
+    ```
+
+    Do not edit `config_templates/conf.default.yaml` directly. Your `conf.yaml` is the file you will modify.
+  </Step>
+
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+
+    The server starts on port `12393` by default. You should see log output confirming it is running.
+
+    For more detailed logs, run with `--verbose`:
+
+    ```bash
+    uv run run_server.py --verbose
+    ```
+  </Step>
+
+  <Step title="Open the web interface">
+    Open your browser and navigate to:
+
+    ```
+    http://localhost:12393
+    ```
+
+    You should see the Live2D avatar and the chat interface.
+  </Step>
+</Steps>
+
+## Default configuration
+
+The default `conf.yaml` uses:
+
+| Component | Default |
+|---|---|
+| LLM | Ollama with `qwen2.5:latest` |
+| ASR | sherpa-onnx (SenseVoice model, auto-downloaded on first run) |
+| TTS | Edge TTS (`en-US-AvaMultilingualNeural`) |
+
+For the default LLM to work, you need [Ollama](https://ollama.com) installed and the model pulled:
+
+```bash
+ollama pull qwen2.5
+```
+
+<Tip>
+If you do not want to use Ollama, edit `conf.yaml` and change `llm_provider` under `agent_config.agent_settings.basic_memory_agent` to a different provider such as `openai_llm` or `claude_llm`, and fill in the corresponding credentials under `llm_configs`.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration overview" icon="sliders" href="/get-started/configuration-overview">
+    Understand every section of conf.yaml.
+  </Card>
+  <Card title="Character config" icon="user" href="/get-started/character-config">
+    Create custom characters with unique personas and voices.
+  </Card>
+  <Card title="Docker" icon="docker" href="/get-started/docker">
+    Run Open-LLM-VTuber in a container.
+  </Card>
+  <Card title="Update" icon="arrow-up-circle" href="/get-started/update">
+    Keep your installation up to date.
+  </Card>
+</CardGroup>

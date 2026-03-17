@@ -1,0 +1,132 @@
+---
+title: "Piper TTS"
+description: "Configure Piper TTS for fast, offline neural speech synthesis in Open LLM VTuber."
+---
+
+Piper is a fast, local neural TTS system that uses ONNX-format models. It is lightweight, requires no GPU, and produces natural-sounding speech. Models are available for many languages and in multiple quality tiers (low, medium, high).
+
+## Setup
+
+<Steps>
+  <Step title="Install piper-tts">
+    ```bash
+    pip install piper-tts
+    ```
+    Or with `uv`:
+    ```bash
+    uv add piper-tts
+    ```
+  </Step>
+  <Step title="Download a Piper model">
+    Piper models are distributed as pairs: a `.onnx` file and a `.onnx.json` config file. Browse available models at:
+    [https://github.com/rhasspy/piper/blob/master/VOICES.md](https://github.com/rhasspy/piper/blob/master/VOICES.md)
+
+    Download both files and place them in a directory such as `models/piper/`. Both files must be in the same directory and have the same base name.
+
+    Example:
+    ```
+    models/piper/zh_CN-huayan-medium.onnx
+    models/piper/zh_CN-huayan-medium.onnx.json
+    ```
+  </Step>
+  <Step title="Set tts_model to piper_tts">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'piper_tts'
+    ```
+  </Step>
+  <Step title="Configure the model path">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'piper_tts'
+        piper_tts:
+          model_path: 'models/piper/zh_CN-huayan-medium.onnx'
+          speaker_id: 0
+          length_scale: 1.0
+          noise_scale: 0.667
+          noise_w: 0.8
+          volume: 1.0
+          normalize_audio: true
+          use_cuda: false
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'piper_tts'
+    piper_tts:
+      model_path: 'models/piper/zh_CN-huayan-medium.onnx'
+      speaker_id: 0
+      length_scale: 1.0
+      noise_scale: 0.667
+      noise_w: 0.8
+      volume: 1.0
+      normalize_audio: true
+      use_cuda: false
+```
+
+<ParamField path="model_path" type="string" required>
+  Path to the Piper ONNX model file (`.onnx`). The corresponding `.onnx.json` file must be in the same directory with the same base name.
+</ParamField>
+
+<ParamField path="speaker_id" type="integer" default="0">
+  Speaker ID for multi-speaker models. For single-speaker models, use `0`. Check the model's `.onnx.json` file or the Voices page for the available speaker IDs.
+</ParamField>
+
+<ParamField path="length_scale" type="number" default="1.0">
+  Controls speech speed. Values below `1.0` speed up speech (e.g., `0.5` = 2× faster); values above `1.0` slow it down (e.g., `2.0` = 2× slower).
+</ParamField>
+
+<ParamField path="noise_scale" type="number" default="0.667">
+  Degree of audio variation between generations. Range `0.0` to `1.0`. Higher values produce richer, more varied audio. The default of `0.667` is the recommended value.
+</ParamField>
+
+<ParamField path="noise_w" type="number" default="0.8">
+  Speaking style variation. Range `0.0` to `1.0`. Higher values make the speaking style more expressive and diverse. The default of `0.8` is the recommended value.
+</ParamField>
+
+<ParamField path="volume" type="number" default="1.0">
+  Output volume level. Range `0.0` to `1.0`. `1.0` is normal volume.
+</ParamField>
+
+<ParamField path="normalize_audio" type="boolean" default="true">
+  When enabled, normalises the output audio to a consistent volume level. Recommended to keep enabled for consistent playback volume.
+</ParamField>
+
+<ParamField path="use_cuda" type="boolean" default="false">
+  Enable GPU acceleration using CUDA. Requires `onnxruntime-gpu` to be installed. Piper is fast enough on CPU for real-time TTS on most modern hardware.
+</ParamField>
+
+## Model naming convention
+
+Piper model filenames follow the pattern `{language}-{voice}-{quality}.onnx`. Quality tiers:
+
+| Quality | Notes |
+|---|---|
+| `low` | Smallest file, fastest, lower audio quality |
+| `medium` | Good balance of size and quality |
+| `high` | Best quality, larger file |
+
+Examples:
+- `en_US-amy-low.onnx` — US English, Amy voice, low quality
+- `en_US-lessac-high.onnx` — US English, Lessac voice, high quality
+- `zh_CN-huayan-medium.onnx` — Mandarin Chinese, Huayan voice, medium quality
+
+<Note>
+  Piper models run fully offline. After placing the `.onnx` and `.onnx.json` files in your `models/piper/` directory, no internet access is required.
+</Note>
+
+<Tip>
+  On most machines, CPU inference with a `medium` quality model produces audio fast enough for real-time conversation. Only enable `use_cuda` if you notice latency issues with CPU inference.
+</Tip>

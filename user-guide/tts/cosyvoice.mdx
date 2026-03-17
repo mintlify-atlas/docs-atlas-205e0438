@@ -1,0 +1,132 @@
+---
+title: "CosyVoice"
+description: "Configure CosyVoice or CosyVoice 2 TTS in Open LLM VTuber by connecting to a running CosyVoice Gradio server."
+---
+
+CosyVoice is a high-quality TTS model developed by Alibaba. Open LLM VTuber integrates with CosyVoice through its Gradio web UI API. You must run the CosyVoice server separately before starting Open LLM VTuber.
+
+Two engine variants are available:
+- **`cosyvoice_tts`** — CosyVoice (v1)
+- **`cosyvoice2_tts`** — CosyVoice 2, with additional streaming and speed controls
+
+## Setup
+
+<Steps>
+  <Step title="Install and launch CosyVoice">
+    Follow the CosyVoice project to set up and start its Gradio demo. By default it runs at `http://127.0.0.1:50000/`.
+  </Step>
+  <Step title="Set tts_model in conf.yaml">
+    Choose `cosyvoice_tts` for CosyVoice v1 or `cosyvoice2_tts` for CosyVoice 2:
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'cosyvoice2_tts'
+    ```
+  </Step>
+  <Step title="Configure the engine">
+    See the configuration sections below for the relevant parameter set.
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## CosyVoice (v1) configuration
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'cosyvoice_tts'
+    cosyvoice_tts:
+      client_url: 'http://127.0.0.1:50000/'
+      mode_checkbox_group: '预训练音色'
+      sft_dropdown: '中文女'
+      prompt_text: ''
+      prompt_wav_upload_url: 'https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'
+      prompt_wav_record_url: 'https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'
+      instruct_text: ''
+      seed: 0
+      api_name: '/generate_audio'
+```
+
+<ParamField path="client_url" type="string" required>
+  URL of the running CosyVoice Gradio web UI. Default is `http://127.0.0.1:50000/`.
+</ParamField>
+
+<ParamField path="mode_checkbox_group" type="string" required>
+  Synthesis mode. Maps to the mode selector in the CosyVoice Gradio UI. Common values:
+  - `'预训练音色'` — use a pre-trained speaker voice
+  - `'3s极速复刻'` — 3-second voice cloning
+  - `'跨语种复刻'` — cross-language voice cloning
+  - `'自然语言控制'` — natural language style control
+</ParamField>
+
+<ParamField path="sft_dropdown" type="string">
+  Speaker selection for pre-trained voice mode. Examples: `'中文女'` (Chinese female), `'中文男'` (Chinese male), `'英文女'` (English female). Only applies when `mode_checkbox_group` is set to a pre-trained voice mode.
+</ParamField>
+
+<ParamField path="prompt_text" type="string">
+  Transcript of the reference audio used for voice cloning. Required when using cloning modes.
+</ParamField>
+
+<ParamField path="prompt_wav_upload_url" type="string">
+  URL of the reference WAV file for voice cloning. Used in upload-based cloning modes.
+</ParamField>
+
+<ParamField path="prompt_wav_record_url" type="string">
+  URL of the reference WAV file when using the recorded audio cloning mode.
+</ParamField>
+
+<ParamField path="instruct_text" type="string">
+  Natural language instruction for style control. Only used when `mode_checkbox_group` is set to the instruction-based mode.
+</ParamField>
+
+<ParamField path="seed" type="integer" default="0">
+  Random seed for reproducible generation.
+</ParamField>
+
+<ParamField path="api_name" type="string" default="/generate_audio">
+  The Gradio API endpoint name. Should match the endpoint exposed by your CosyVoice Gradio server version.
+</ParamField>
+
+## CosyVoice 2 configuration
+
+CosyVoice 2 uses a similar parameter set with the addition of `stream` and `speed`:
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'cosyvoice2_tts'
+    cosyvoice2_tts:
+      client_url: 'http://127.0.0.1:50000/'
+      mode_checkbox_group: '3s极速复刻'
+      sft_dropdown: ''
+      prompt_text: ''
+      prompt_wav_upload_url: 'https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'
+      prompt_wav_record_url: 'https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'
+      instruct_text: ''
+      stream: false
+      seed: 0
+      speed: 1.0
+      api_name: '/generate_audio'
+```
+
+<ParamField path="stream" type="boolean" default="false">
+  Enable streaming inference. When `true`, the Gradio server streams audio in chunks, reducing time to first audio.
+</ParamField>
+
+<ParamField path="speed" type="number" default="1.0">
+  Speech speed multiplier. Values below `1.0` slow speech; values above `1.0` speed it up.
+</ParamField>
+
+All other parameters behave identically to CosyVoice v1. See the parameter descriptions above.
+
+<Warning>
+  The CosyVoice Gradio server must be running and reachable at `client_url` before you start Open LLM VTuber, or audio generation will fail.
+</Warning>
+
+<Tip>
+  For voice cloning, provide a short (3–10 second) clean recording as the reference audio and set `prompt_text` to the exact transcript of that recording.
+</Tip>

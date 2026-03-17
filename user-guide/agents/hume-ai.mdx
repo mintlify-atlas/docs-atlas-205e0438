@@ -1,0 +1,91 @@
+---
+title: Hume AI Agent
+description: Use Hume AI's Empathic Voice Interface (EVI) for emotionally intelligent responses with built-in voice synthesis.
+---
+
+[Hume AI](https://www.hume.ai) provides an **Empathic Voice Interface (EVI)** that combines language understanding with emotional voice intelligence. Unlike other agents that use the Open LLM VTuber TTS/ASR pipeline, the Hume AI Agent streams audio directly from Hume's API — the character speaks with Hume's emotionally expressive voice synthesis.
+
+**When to use this agent:**
+- You want high-quality, emotionally expressive voice output without configuring a local TTS model.
+- You are building an experience where the character's tone adapts to the emotional context of the conversation.
+- You have a Hume AI API key and are comfortable with usage-based cloud billing.
+
+<Warning>
+  The Hume AI Agent bypasses the ASR and TTS configuration in `conf.yaml`. Your `asr_config` and `tts_config` settings are **ignored** — Hume handles speech recognition and voice synthesis on its own servers.
+</Warning>
+
+## Prerequisites
+
+<Steps>
+  <Step title="Create a Hume AI account">
+    Sign up at [hume.ai](https://www.hume.ai) and obtain an API key from the developer dashboard.
+  </Step>
+  <Step title="(Optional) Create an EVI configuration">
+    In the Hume AI dashboard you can create a named EVI configuration that sets the voice, persona, and language model. Copy the **Config ID** if you want to use a specific configuration.
+  </Step>
+  <Step title="Add your API key to conf.yaml">
+    Set `api_key` in the `hume_ai_agent` block (see below).
+  </Step>
+  <Step title="Switch the agent">
+    Set `conversation_agent_choice: 'hume_ai_agent'` and restart the server.
+  </Step>
+</Steps>
+
+## Configuration
+
+```yaml
+agent_config:
+  conversation_agent_choice: 'hume_ai_agent'
+
+  agent_settings:
+    hume_ai_agent:
+      api_key: 'your-hume-api-key'
+      host: 'api.hume.ai'
+      config_id: ''       # optional
+      idle_timeout: 15
+```
+
+### Parameters
+
+<ParamField path="api_key" type="string" required>
+  Your Hume AI API key. Obtain it from the [Hume AI developer dashboard](https://www.hume.ai).
+</ParamField>
+
+<ParamField path="host" type="string" default="api.hume.ai">
+  The Hume AI API hostname. Do not change this unless Hume AI instructs you to use a different endpoint.
+</ParamField>
+
+<ParamField path="config_id" type="string">
+  Optional. The ID of a saved EVI configuration in your Hume AI account. When provided, the agent will use the voice, persona prompt, and LLM settings from that configuration. Leave empty to use Hume's default EVI settings.
+</ParamField>
+
+<ParamField path="idle_timeout" type="integer" default="15">
+  Number of seconds of inactivity after which the WebSocket connection to Hume's API is automatically closed. The connection is re-established on the next user message.
+
+  Lower values reduce idle API costs; higher values reduce reconnection latency between turns.
+</ParamField>
+
+## How it works
+
+The Hume AI Agent communicates with Hume's EVI over a persistent WebSocket connection:
+
+1. On the first message of a session the agent opens a WebSocket to `wss://api.hume.ai/v0/evi/chat`.
+2. User text is sent as a `user_input` message.
+3. Hume streams back `assistant_message` events (transcript) paired with `audio_output` events (base64-encoded WAV audio).
+4. Each audio chunk is decoded, saved to a temporary file in `./cache/`, and yielded as an `AudioOutput` to the Open LLM VTuber playback pipeline.
+5. After `idle_timeout` seconds with no activity, the connection is closed to avoid unnecessary charges.
+
+### Session resumption
+
+Hume AI groups conversations into **chat groups**. When a history session is reloaded in Open LLM VTuber, the agent looks for a `resume_id` in the session metadata and passes it to Hume so the conversation context is restored on Hume's side.
+
+<Tip>
+  If you switch away from the Hume AI agent and back again within the same history session, the agent will attempt to resume the Hume chat group automatically.
+</Tip>
+
+## Limitations
+
+- Image input is not supported. If the user shares an image it will be ignored.
+- Interrupt handling (`handle_interrupt`) is not implemented.
+- ASR and TTS settings in `conf.yaml` have no effect when this agent is active.
+- The LLM, voice, and persona must be configured in the Hume AI dashboard, not in `conf.yaml`.

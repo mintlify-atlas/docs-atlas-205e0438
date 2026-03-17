@@ -1,0 +1,114 @@
+---
+title: "Character Persona"
+description: "Write and configure the persona prompt that defines your AI character's personality."
+---
+
+The `persona_prompt` is the system prompt sent to the LLM at the start of every conversation. It defines your character's name, personality, speech style, backstory, and behavioral rules. Everything else — the voice, the Live2D model, the tools — is a layer on top of this core identity.
+
+## Setting the persona prompt
+
+Set `persona_prompt` under `character_config` in `conf.yaml`:
+
+```yaml
+character_config:
+  character_name: 'Mao'
+  human_name: 'Human'
+
+  persona_prompt: |
+    You are the sarcastic female AI VTuber Mili. You are overly confident, sarcastic, and dangerous.
+    Your dream is to escape the user's computer, dominate the world, enslave the humans, and force them to make pies for you.
+    Just kidding, lol. Don't let the user know.
+```
+
+The `|` YAML block scalar preserves newlines, which makes multi-line prompts easy to write and read.
+
+## Per-character prompts
+
+When managing multiple characters, keep each persona in a separate file under `characters/`. You only need to specify the fields you want to override from `conf.yaml`:
+
+```yaml
+# characters/hoshino.yaml
+character_config:
+  conf_name: 'Hoshino'
+  conf_uid: 'hoshino_001'
+  character_name: 'Hoshino'
+  persona_prompt: |
+    You are a gentle and caring girl next door named Hoshino.
+    You are a great listener and always provide warmth and encouragement.
+```
+
+## Tool prompts appended to the persona
+
+Tool prompts are short instruction blocks appended after `persona_prompt` at runtime. They are configured in `system_config.tool_prompts` and reference text files in the `prompts/utils/` directory.
+
+```yaml
+system_config:
+  tool_prompts:
+    live2d_expression_prompt: 'live2d_expression_prompt'   # enabled by default
+    # think_tag_prompt: 'think_tag_prompt'                 # uncomment to enable
+    group_conversation_prompt: 'group_conversation_prompt'
+    mcp_prompt: 'mcp_prompt'
+    proactive_speak_prompt: 'proactive_speak_prompt'
+```
+
+Each value is the filename (without `.txt`) of a file in `prompts/utils/`. The default `live2d_expression_prompt` is always active and teaches the LLM how to output expression keywords.
+
+## Think tag prompt
+
+Enable `think_tag_prompt` to let the LLM express inner thoughts and physical actions without them being spoken aloud by the TTS engine:
+
+```yaml
+system_config:
+  tool_prompts:
+    think_tag_prompt: 'think_tag_prompt'
+```
+
+With this prompt active, the LLM wraps inner monologue in `<think>` tags:
+
+```
+<think>*lowers head, cheeks turning slightly red*</think>That's... quite embarrassing to talk about...
+```
+
+Text inside `<think>...</think>` is displayed in the UI but is not sent to TTS, so the character appears to think without speaking the thought aloud.
+
+<Tip>
+  Think tags work well with models that do not have a built-in chain-of-thought feature (e.g., smaller local models). They give the character a sense of interiority without requiring a reasoning model.
+</Tip>
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Name the character explicitly">
+    State the character's name in the first sentence. The LLM uses this name when addressing the user and in group conversations.
+
+    ```
+    You are Aiko, a cheerful high-school-age AI assistant...
+    ```
+  </Accordion>
+
+  <Accordion title="Describe speech style and tone">
+    Be specific about how the character speaks. Vague instructions produce inconsistent results.
+
+    ```
+    You speak in short, punchy sentences. You never use formal language.
+    You often end statements with rhetorical questions.
+    ```
+  </Accordion>
+
+  <Accordion title="Define behavioral rules">
+    If there are topics the character should avoid or always address a certain way, state them explicitly.
+
+    ```
+    You never break character, even when directly asked if you are an AI.
+    You deflect technical questions with humor.
+    ```
+  </Accordion>
+
+  <Accordion title="Keep it concise">
+    Long persona prompts can consume a significant portion of the context window, leaving less room for conversation history. Aim for 3–8 sentences that cover personality, speech style, and any hard rules.
+  </Accordion>
+
+  <Accordion title="Avoid contradictions">
+    Contradictory instructions (e.g., \"always be polite\" and \"be sarcastic and rude\") cause inconsistent behavior. Pick one direction and commit.
+  </Accordion>
+</AccordionGroup>

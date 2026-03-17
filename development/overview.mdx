@@ -1,0 +1,131 @@
+---
+title: Development Overview
+description: Set up your development environment and start contributing to Open-LLM-VTuber.
+---
+
+## Prerequisites
+
+Before you begin, make sure you have the following installed:
+
+- **Python 3.10–3.12** — required by `pyproject.toml` (`requires-python = ">=3.10,<3.13"`)
+- **[uv](https://github.com/astral-sh/uv)** — the package manager used by this project
+- **[ffmpeg](https://ffmpeg.org/)** — required for audio processing
+
+## Setup
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/Open-LLM-VTuber/Open-LLM-VTuber.git
+    cd Open-LLM-VTuber
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    ```bash
+    uv sync
+    ```
+
+    This reads `pyproject.toml` and installs all dependencies into a managed virtual environment.
+  </Step>
+
+  <Step title="Copy and configure conf.yaml">
+    ```bash
+    cp config_templates/conf.default.yaml conf.yaml
+    ```
+
+    Edit `conf.yaml` to set your preferred LLM, ASR, and TTS backends.
+  </Step>
+
+  <Step title="Run the server">
+    ```bash
+    uv run run_server.py
+    ```
+
+    The server starts at `http://localhost:12393` by default. Open that URL in a browser to access the frontend.
+  </Step>
+</Steps>
+
+### Verbose logging
+
+Pass `--verbose` to enable debug-level logging:
+
+```bash
+uv run run_server.py --verbose
+```
+
+### Updating the project
+
+```bash
+uv run upgrade.py
+```
+
+## Code Quality
+
+The project uses [Ruff](https://github.com/astral-sh/ruff) for both linting and formatting, targeting Python 3.10+ syntax.
+
+```bash
+# Lint
+ruff check .
+
+# Format
+ruff format .
+```
+
+### Pre-commit hooks
+
+Pre-commit hooks run Ruff automatically on every commit:
+
+```bash
+# Install hooks
+pre-commit install
+
+# Run against all files manually
+pre-commit run --all-files
+```
+
+The hook configuration in `.pre-commit-config.yaml` uses `ruff` with `--fix --exit-non-zero-on-fix` so it auto-fixes what it can and fails if any fixes were applied (prompting you to review and re-stage).
+
+## Continuous Integration
+
+GitHub Actions runs two workflows on every pull request:
+
+- **CodeQL** — static security analysis
+- **Ruff** — linting and format checks
+
+PRs must pass both checks before merging.
+
+## Project Layout
+
+```
+Open-LLM-VTuber/
+├── run_server.py              # Entry point
+├── conf.yaml                  # User configuration (gitignored)
+├── config_templates/          # Default config templates
+├── characters/                # Per-character YAML configs
+├── src/open_llm_vtuber/       # Main package
+│   ├── server.py              # FastAPI application
+│   ├── routes.py              # HTTP and WebSocket routes
+│   ├── websocket_handler.py   # Message routing
+│   ├── service_context.py     # Dependency injection container
+│   ├── asr/                   # ASR backends
+│   ├── tts/                   # TTS backends
+│   ├── agent/                 # Agent and LLM backends
+│   ├── vad/                   # Voice activity detection
+│   ├── conversations/         # Conversation orchestration
+│   ├── config_manager/        # Type-safe config classes
+│   └── mcpp/                  # MCP integration
+├── frontend/                  # Web frontend (Git submodule)
+├── live2d-models/             # Live2D model files
+├── chat_history/              # Persisted conversation history
+└── cache/                     # Temporary audio files
+```
+
+## Next Steps
+
+- [Architecture](/development/architecture) — understand how the system fits together
+- [Adding an LLM backend](/development/adding-llm)
+- [Adding an ASR backend](/development/adding-asr)
+- [Adding a TTS backend](/development/adding-tts)
+- [Adding an agent](/development/adding-agent)
+- [Contributing guide](/development/contributing)

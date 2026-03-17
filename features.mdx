@@ -1,0 +1,148 @@
+---
+title: Features
+description: A complete overview of every capability in Open-LLM-VTuber.
+---
+
+## Platform and hardware support
+
+<AccordionGroup>
+  <Accordion title="Cross-platform (Windows, macOS, Linux)">
+    Open-LLM-VTuber runs natively on all three major desktop operating systems. macOS includes specific support for Apple Silicon (M-series) chips with MPS acceleration. Windows and Linux support NVIDIA CUDA for GPU-accelerated inference. Every component also supports CPU-only fallback, so no dedicated GPU is required.
+  </Accordion>
+
+  <Accordion title="Offline mode">
+    All core functionality can run without an internet connection. Use Ollama for the LLM, sherpa-onnx for ASR, and sherpa-onnx or Edge TTS for speech synthesis to achieve a fully local, private setup. Your conversation data never leaves your device.
+  </Accordion>
+</AccordionGroup>
+
+## Clients
+
+<AccordionGroup>
+  <Accordion title="Web client">
+    A browser-based interface served locally at `http://localhost:12393`. Works on any device that can reach the server, including phones and tablets when the server is configured with HTTPS.
+  </Accordion>
+
+  <Accordion title="Desktop client">
+    A dedicated desktop application offering window mode and desktop pet mode. In desktop mode, the Live2D avatar floats on your screen with a transparent background, always on top, and with mouse click-through — so it stays visible while you use other applications.
+  </Accordion>
+</AccordionGroup>
+
+## Interaction
+
+<AccordionGroup>
+  <Accordion title="Visual perception">
+    The AI companion can see through your webcam or capture your screen. This lets it react to what you're doing, describe images, or interact with content on your display.
+  </Accordion>
+
+  <Accordion title="Voice interruption without headphones">
+    A Voice Activity Detection (VAD) layer using Silero VAD prevents the AI from hearing its own TTS output. This means you can interrupt the AI mid-sentence without wearing headphones, and it will stop speaking and respond to your input.
+  </Accordion>
+
+  <Accordion title="Touch feedback">
+    Click or drag the Live2D avatar to trigger touch interactions. The AI can respond to physical interaction events as part of its conversational behavior.
+  </Accordion>
+
+  <Accordion title="Live2D expressions and emotion mapping">
+    Live2D model expressions are driven by keywords in the LLM output. You configure an emotion map that translates specific tags (such as `[happy]` or `[surprised]`) to Live2D expression names. The expression prompt is appended to the system prompt automatically.
+  </Accordion>
+
+  <Accordion title="Pet mode">
+    A special desktop mode where the avatar window has a transparent background, is always on top of other windows, and passes mouse clicks through to the application underneath. You can reposition the avatar anywhere on your screen.
+  </Accordion>
+
+  <Accordion title="Inner thoughts display">
+    Content wrapped in parentheses in the LLM output is treated as inner thoughts. It appears on screen as visible text or stage directions but is not read aloud by the TTS engine. Useful for showing the character's reasoning or emotional state.
+  </Accordion>
+
+  <Accordion title="Proactive speaking">
+    The AI can initiate conversation without waiting for user input. A configurable idle timer triggers the `proactive_speak_prompt`, causing the AI to speak on its own after a period of silence.
+  </Accordion>
+
+  <Accordion title="Chat log persistence">
+    All conversations are saved to the `chat_history/` directory. You can switch back to any previous session from the UI, and the AI will have full context of that conversation.
+  </Accordion>
+
+  <Accordion title="TTS translation">
+    Speak and read subtitles in one language while the TTS outputs a different language. For example, converse in English while the AI speaks in Japanese. Uses DeepLX or Tencent Translation as the translation backend.
+  </Accordion>
+</AccordionGroup>
+
+## Model support
+
+### Large language models (LLM)
+
+| Provider | Notes |
+|---|---|
+| Ollama | Local inference, default provider |
+| OpenAI | Also compatible with any OpenAI-compatible API |
+| Gemini | Google Gemini API |
+| Claude | Anthropic API |
+| Mistral | Mistral API |
+| DeepSeek | DeepSeek API |
+| Zhipu AI | GLM models |
+| GGUF (llama.cpp) | Run quantized models directly |
+| LM Studio | Local LM Studio server |
+| vLLM | High-throughput inference server |
+| Groq | Fast inference API |
+
+### Automatic speech recognition (ASR)
+
+| Provider | Notes |
+|---|---|
+| sherpa-onnx | Offline, default ASR |
+| FunASR | Supports SenseVoiceSmall |
+| Faster-Whisper | Offline, GPU-accelerated |
+| Whisper.cpp | Offline, CPU-optimized |
+| OpenAI Whisper | Local Whisper model |
+| Groq Whisper | Groq-hosted fast transcription |
+| Azure ASR | Microsoft cognitive services |
+
+### Text-to-speech (TTS)
+
+| Provider | Notes |
+|---|---|
+| Edge TTS | Default, no API key required |
+| sherpa-onnx TTS | Fully offline |
+| pyttsx3 | System TTS, no dependencies |
+| MeloTTS | Local, multilingual |
+| Coqui TTS | Local, voice cloning |
+| GPT-SoVITS | Voice cloning with reference audio |
+| Bark | Expressive local TTS |
+| CosyVoice / CosyVoice2 | Alibaba voice synthesis |
+| Fish Audio | API-based |
+| Azure TTS | Microsoft cognitive services |
+| Piper TTS | Fast local ONNX TTS |
+| ElevenLabs | API-based, multilingual |
+| Minimax TTS | API-based |
+| Cartesia TTS | API-based |
+| OpenAI TTS | Compatible endpoint (e.g., Kokoro) |
+| Spark TTS | Gradio-based voice cloning |
+| SiliconFlow TTS | API-based |
+
+## Customization and extensibility
+
+<AccordionGroup>
+  <Accordion title="Simple module configuration">
+    Every component — LLM backend, ASR engine, TTS engine, VAD settings — is controlled by entries in `conf.yaml`. Switching providers requires changing one or two lines. No code changes are needed for standard configurations.
+  </Accordion>
+
+  <Accordion title="Character customization">
+    Create unlimited character personas by adding YAML files to the `characters/` directory. Each file can override the persona prompt, Live2D model, TTS voice, LLM provider, and any other setting. Characters can be switched at runtime from the UI.
+  </Accordion>
+
+  <Accordion title="Flexible agent implementation">
+    The agent interface is designed to be extended. Built-in agents include `basic_memory_agent`, Letta (long-term memory), HumeAI EVI, and Mem0. Implement the agent interface to integrate any custom architecture.
+  </Accordion>
+
+  <Accordion title="MCP (Model Context Protocol) integration">
+    The `basic_memory_agent` supports MCP Plus, enabling the LLM to call external tools via the Model Context Protocol. Configure which MCP servers are enabled with the `mcp_enabled_servers` list in `agent_config`.
+  </Accordion>
+
+  <Accordion title="Group conversation">
+    Multiple AI characters can participate in a shared conversation. Each participant receives a `group_conversation_prompt` that helps them coordinate turn-taking and respond to each other.
+  </Accordion>
+
+  <Accordion title="Live streaming (Bilibili)">
+    Connect to one or more Bilibili live room IDs to read and respond to stream chat. Configure room IDs under `live_config.bilibili_live` in `conf.yaml`. Requires the `bilibili` optional dependency.
+  </Accordion>
+</AccordionGroup>

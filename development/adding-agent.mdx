@@ -1,0 +1,204 @@
+---
+title: Adding a New Agent Implementation
+description: How to create a new agent that drives the AI character's conversation behavior.
+---
+
+Agents are the stateful layer that wraps a language model (or another AI service). They hold conversation history, handle interruptions, and produce structured output that the TTS and Live2D systems consume.
+
+## The AgentInterface
+
+All agents implement `AgentInterface` from `src/open_llm_vtuber/agent/agents/agent_interface.py`:
+
+```python
+class AgentInterface(ABC):
+    """Base interface for all agent implementations"""
+
+    @abstractmethod
+    async def chat(self, input_data: BaseInput) -> AsyncIterator[BaseOutput]:
+        """
+        Chat with the agent asynchronously.
+
+        Output type depends on the agent's implementation:
+        - SentenceOutput: text responses with display and TTS text
+        - AudioOutput: direct audio with display text and transcript
+
+        Args:
+            input_data: BaseInput — user input data
+
+        Returns:
+            AsyncIterator[BaseOutput] — stream of agent outputs
+        """
+        ...
+
+    @abstractmethod
+    def handle_interrupt(self, heard_response: str) -> None:
+        """
+        Called when the user interrupts the agent mid-response.
+
+        Args:
+            heard_response: the portion of the response the user heard
+        """
+        ...
+
+    @abstractmethod
+    def set_memory_from_history(
+        self, conf_uid: str, history_uid: str
+    ) -> None:
+        """
+        Load the agent's working memory from a saved chat history.
+
+        Args:
+            conf_uid: configuration UID
+            history_uid: history UID
+        """
+        ...
+```
+
+## Input and Output Types
+
+### Input
+
+The `chat` method receives a `BatchInput`:
+
+```python
+@dataclass
+class BatchInput(BaseInput):
+    texts: List[TextData]          # Transcribed speech or typed text
+    images: Optional[List[ImageData]] = None
+    files: Optional[List[FileData]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    # metadata keys: 'proactive_speak', 'skip_memory', 'skip_history'
+```
+
+### Output
+
+Yield `SentenceOutput` for text-based TTS responses:
+
+```python
+@dataclass
+class SentenceOutput(BaseOutput):
+    display_text: DisplayText  # text shown in the UI
+    tts_text: str              # text sent to the TTS engine
+    actions: Actions           # Live2D expressions, sounds, pictures
+```
+
+Yield `AudioOutput` if your agent generates audio directly (e.g., Hume AI):
+
+```python
+@dataclass
+class AudioOutput(BaseOutput):
+    audio_path: str
+    display_text: DisplayText
+    transcript: str
+    actions: Actions
+```
+
+## Steps to Add a New Agent
+
+<Steps>
+  <Step title="Create the implementation file">
+    Create `src/open_llm_vtuber/agent/agents/my_agent.py`:
+
+    ```python
+    from typing import AsyncIterator
+    from loguru import logger
+    from .agent_interface import AgentInterface
+    from ..input_types import BaseInput, BatchInput
+    from ..output_types import BaseOutput, SentenceOutput, DisplayText, Actions
+
+
+    class MyAgent(AgentInterface):
+        def __init__(self, system: str, model: str, api_key: str, **kwargs):
+            self.system = system
+            self.model = model
+            self.api_key = api_key
+            self.memory = []  # conversation history
+
+        async def chat(
+            self, input_data: BaseInput
+        ) -> AsyncIterator[BaseOutput]:
+            assert isinstance(input_data, BatchInput)
+            user_text = input_data.texts[0].content
+
+            # Add user message to memory
+            self.memory.append({"role": "user", "content": user_text})
+
+            # Call your LLM and stream sentences
+            async for sentence in self._stream_response():
+                yield SentenceOutput(
+                    display_text=DisplayText(text=sentence),
+                    tts_text=sentence,
+                    actions=Actions(),
+                )
+
+        def handle_interrupt(self, heard_response: str) -> None:
+            if heard_response:
+                self.memory.append(
+                    {"role": "assistant", "content": heard_response}
+                )
+
+        def set_memory_from_history(
+            self, conf_uid: str, history_uid: str
+        ) -> None:
+            from ...chat_history_manager import get_history
+            history = get_history(conf_uid, history_uid)
+            self.memory = [
+                m for m in history if m["role"] != "system"
+            ]
+    ```
+  </Step>
+
+  <Step title="Register in the factory">
+    Open `src/open_llm_vtuber/agent/agent_factory.py` and add a branch in `AgentFactory.create_agent`:
+
+    ```python
+    elif conversation_agent_choice == "my_agent":
+        from .agents.my_agent import MyAgent
+
+        settings = agent_settings.get("my_agent", {})
+        return MyAgent(
+            system=system_prompt,
+            model=settings.get("model"),
+            api_key=settings.get("api_key"),
+        )
+    ```
+  </Step>
+
+  <Step title="Add a config class">
+    Open `src/open_llm_vtuber/config_manager/agent.py` and add a Pydantic model:
+
+    ```python
+    class MyAgentConfig(BaseModel):
+        model: str = "my-model"
+        api_key: str = ""
+    ```
+
+    Then add `my_agent: Optional[MyAgentConfig] = None` to the `AgentSettings` model.
+  </Step>
+
+  <Step title="Update the default configuration">
+    Add an example to both default config templates:
+
+    ```yaml
+    agent_config:
+      conversation_agent_choice: my_agent
+      agent_settings:
+        my_agent:
+          model: my-model
+          api_key: ""
+    ```
+  </Step>
+</Steps>
+
+## Existing Agents for Reference
+
+| Key | Notes |
+|---|---|
+| `basic_memory_agent` | Default; uses any `StatelessLLM` with in-process memory |
+| `letta_agent` | Long-term memory via Letta server |
+| `hume_ai_agent` | Emotion-aware voice via Hume AI (produces `AudioOutput`) |
+| `mem0_agent` | Semantic memory via Mem0 |
+
+<Tip>
+  The `basic_memory_agent` in `agents/basic_memory_agent.py` is the best reference implementation. It shows how to handle sentence segmentation, MCP tool calls, Live2D expression extraction, and interrupt handling.
+</Tip>

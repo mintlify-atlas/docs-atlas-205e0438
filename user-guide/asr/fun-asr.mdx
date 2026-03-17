@@ -1,0 +1,129 @@
+---
+title: "FunASR"
+description: "Configure the FunASR engine for offline Chinese and multilingual speech recognition in Open LLM VTuber."
+---
+
+FunASR is an open-source ASR framework by Alibaba's DAMO Academy. It bundles voice activity detection, punctuation restoration, and Inverse Text Normalization alongside speech recognition, making it particularly strong for Chinese-language transcription.
+
+<Warning>
+  FunASR requires an internet connection on its first launch to download model weights from ModelScope or Hugging Face. After the initial download, it can run fully offline. If you need a fully offline setup from the start, use [Sherpa-ONNX](/user-guide/asr/sherpa-onnx) instead.
+</Warning>
+
+## Installation
+
+<Steps>
+  <Step title="Install FunASR">
+    ```bash
+    pip install funasr
+    ```
+  </Step>
+  <Step title="Set asr_model in conf.yaml">
+    ```yaml
+    character_config:
+      asr_config:
+        asr_model: 'fun_asr'
+    ```
+  </Step>
+  <Step title="Configure the engine">
+    ```yaml
+    fun_asr:
+      model_name: 'iic/SenseVoiceSmall'
+      vad_model: 'fsmn-vad'
+      punc_model: 'ct-punc'
+      device: 'cpu'
+      disable_update: True
+      ncpu: 4
+      hub: 'ms'
+      use_itn: False
+      language: 'auto'
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+    Models are downloaded from ModelScope (or Hugging Face if `hub: 'hf'`) on first run.
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  asr_config:
+    asr_model: 'fun_asr'
+    fun_asr:
+      model_name: 'iic/SenseVoiceSmall'
+      vad_model: 'fsmn-vad'
+      punc_model: 'ct-punc'
+      device: 'cpu'
+      disable_update: True
+      ncpu: 4
+      hub: 'ms'
+      use_itn: False
+      language: 'auto'
+```
+
+<ParamField path="model_name" type="string" required>
+  The ASR model to load. Common options:
+  - `iic/SenseVoiceSmall` — multilingual (zh/en/auto), small footprint
+  - `paraformer-zh` — Mandarin Chinese specialist, higher accuracy
+</ParamField>
+
+<ParamField path="vad_model" type="string" required>
+  Voice Activity Detection model name. `fsmn-vad` is the standard choice. This model is only invoked internally by FunASR when audio exceeds 30 seconds; Open LLM VTuber's own VAD pipeline handles segmentation before audio reaches FunASR.
+</ParamField>
+
+<ParamField path="punc_model" type="string" required>
+  Punctuation restoration model. `ct-punc` adds commas and periods to the transcript. Set to an empty string or `null` to disable punctuation.
+</ParamField>
+
+<ParamField path="device" type="string" default="cpu">
+  Compute device: `cpu` or `cuda`.
+</ParamField>
+
+<ParamField path="disable_update" type="boolean" default="true">
+  When `True`, FunASR skips the update check on startup. Set to `False` only if you want automatic model updates.
+</ParamField>
+
+<ParamField path="ncpu" type="integer" default="4">
+  Number of CPU threads for internal operations.
+</ParamField>
+
+<ParamField path="hub" type="string" default="ms">
+  Model hub for downloading models:
+  - `ms` — ModelScope (default, recommended for users in China)
+  - `hf` — Hugging Face
+</ParamField>
+
+<ParamField path="use_itn" type="boolean" default="false">
+  Enable Inverse Text Normalization (converts spoken-form numbers to written form). Currently set to `False` by default for FunASR.
+</ParamField>
+
+<ParamField path="language" type="string" default="auto">
+  Language hint: `zh`, `en`, or `auto` for automatic detection.
+</ParamField>
+
+## Model options
+
+### SenseVoiceSmall (default)
+
+`iic/SenseVoiceSmall` is a lightweight multilingual model that supports Chinese, English, and automatic language detection. It is the default and works well for most use cases.
+
+### paraformer-zh
+
+`paraformer-zh` is a larger model optimized for Mandarin Chinese. It provides higher accuracy for Chinese speech but does not support other languages.
+
+```yaml
+fun_asr:
+  model_name: 'paraformer-zh'
+  language: 'zh'
+```
+
+## Offline operation after first run
+
+Once FunASR has downloaded its models, it does not need internet access for normal operation. The downloaded models are cached by the FunASR library.
+
+<Tip>
+  If you need to pre-download models before running in a restricted environment, run the server once with internet access and let FunASR complete the download. You can then disconnect from the internet for all subsequent runs.
+</Tip>

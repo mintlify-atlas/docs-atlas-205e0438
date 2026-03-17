@@ -1,0 +1,124 @@
+---
+title: "MCP Tools"
+description: "Extend the AI with tools using the Model Context Protocol (MCP)."
+---
+
+Open-LLM-VTuber supports the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/), which lets the AI call external tools — such as web search, time lookup, file access, and more — from within a conversation.
+
+## How it works
+
+When MCP is enabled, the AI is given a prompt (`mcp_prompt`) that describes the available tools and the JSON format to use when calling them. The server intercepts the JSON tool call in the AI's response, executes it against the appropriate MCP server, and returns the result to the AI so it can incorporate the answer into its reply.
+
+## Enabling MCP
+
+MCP is controlled by the `use_mcpp` setting in `basic_memory_agent`:
+
+```yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        use_mcpp: True
+        mcp_enabled_servers: ["time", "ddg-search"]
+```
+
+Also ensure the `mcp_prompt` tool prompt is active in `system_config`:
+
+```yaml
+system_config:
+  tool_prompts:
+    mcp_prompt: 'mcp_prompt'
+```
+
+## Built-in MCP servers
+
+Two servers are bundled and ready to use:
+
+<CardGroup cols={2}>
+  <Card title="time" icon="clock">
+    Returns the current local time. Useful for time-aware greetings and reminders.
+  </Card>
+  <Card title="ddg-search" icon="magnifying-glass">
+    Runs a DuckDuckGo web search and returns results. Requires network access.
+  </Card>
+</CardGroup>
+
+## mcp_servers.json
+
+MCP server definitions are stored in `mcp_servers.json` at the project root:
+
+```json
+{
+  "mcp_servers": {
+    "time": {
+      "command": "uvx",
+      "args": ["mcp-server-time", "--local-timezone=Asia/Shanghai"]
+    },
+    "ddg-search": {
+      "command": "uvx",
+      "args": ["duckduckgo-mcp-server"]
+    }
+  }
+}
+```
+
+Each key is the server name used in `mcp_enabled_servers`. The `command` and `args` fields define how the server process is launched.
+
+## Adding a custom MCP server
+
+<Steps>
+  <Step title="Install the server package">
+    MCP servers are typically distributed as Python or Node packages. For a Python server:
+
+    ```bash
+    uv add my-mcp-server
+    ```
+
+    Or for a Node-based server via `npx`:
+
+    No installation needed — `npx` fetches and runs the package on demand.
+  </Step>
+
+  <Step title="Add an entry to mcp_servers.json">
+    ```json
+    {
+      "mcp_servers": {
+        "time": {
+          "command": "uvx",
+          "args": ["mcp-server-time", "--local-timezone=Asia/Shanghai"]
+        },
+        "ddg-search": {
+          "command": "uvx",
+          "args": ["duckduckgo-mcp-server"]
+        },
+        "my-tool": {
+          "command": "uvx",
+          "args": ["my-mcp-server"]
+        }
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Enable the server in conf.yaml">
+    Add the server name to `mcp_enabled_servers`:
+
+    ```yaml
+    basic_memory_agent:
+      use_mcpp: True
+      mcp_enabled_servers: ["time", "ddg-search", "my-tool"]
+    ```
+  </Step>
+
+  <Step title="Restart the server">
+    Stop and restart `uv run run_server.py`. The new MCP server will be started automatically.
+  </Step>
+</Steps>
+
+<Note>
+  Only servers listed in `mcp_enabled_servers` are started and made available to the AI. Adding a server to `mcp_servers.json` without including it in `mcp_enabled_servers` has no effect.
+</Note>
+
+<Warning>
+  The MCP tool-calling mechanism relies on the LLM outputting a valid JSON object in a specific format. Smaller or less capable models may struggle to follow the format reliably. If tool calls are not working, try a larger or more instruction-following model.
+</Warning>

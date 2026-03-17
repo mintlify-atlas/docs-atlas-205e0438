@@ -1,0 +1,239 @@
+---
+title: Configuration overview
+description: A guide to every section of conf.yaml, the main configuration file for Open-LLM-VTuber.
+---
+
+All server and character settings live in a single file at the root of the project: `conf.yaml`. This file is created by copying the default template:
+
+```bash
+cp config_templates/conf.default.yaml conf.yaml
+```
+
+Do not edit `config_templates/conf.default.yaml` directly. That file is the source of truth for new keys and is updated when you run `uv run upgrade.py`.
+
+## Top-level structure
+
+```yaml conf.yaml
+system_config:
+  ...
+
+character_config:
+  ...
+
+live_config:
+  ...
+```
+
+## system_config
+
+Controls server-level settings that apply globally across all characters.
+
+```yaml
+system_config:
+  conf_version: 'v1.2.1'
+  host: 'localhost'      # use 0.0.0.0 to accept connections from other devices
+  port: 12393
+  config_alts_dir: 'characters'
+  tool_prompts:
+    live2d_expression_prompt: 'live2d_expression_prompt'
+    group_conversation_prompt: 'group_conversation_prompt'
+    mcp_prompt: 'mcp_prompt'
+    proactive_speak_prompt: 'proactive_speak_prompt'
+```
+
+| Key | Description |
+|---|---|
+| `host` | Bind address. Use `localhost` to restrict access to the local machine, or `0.0.0.0` to allow access from other devices on the network. |
+| `port` | HTTP port. Default is `12393`. |
+| `config_alts_dir` | Directory where character YAML files are stored. Default is `characters`. |
+| `tool_prompts` | Named prompt snippets appended to the system prompt. Enable or disable features by commenting out entries. |
+
+### tool_prompts
+
+Each entry in `tool_prompts` is a key–name pair. The name refers to a built-in prompt template. Comment out an entry to disable the feature:
+
+| Key | What it enables |
+|---|---|
+| `live2d_expression_prompt` | Appends emotion keyword instructions to the system prompt so the LLM can trigger Live2D expressions. |
+| `think_tag_prompt` | Enables inner thoughts display for models without native thinking output. |
+| `group_conversation_prompt` | Required for group conversation mode. |
+| `mcp_prompt` | Required for MCP tool use. |
+| `proactive_speak_prompt` | Required for AI proactive speaking. |
+| `speakable_prompt` | Adds guidance for producing clean, speakable TTS output. |
+
+## character_config
+
+Defines the default character and all AI component settings.
+
+### Identity and appearance
+
+```yaml
+character_config:
+  conf_name: 'mao_pro'
+  conf_uid: 'mao_pro_001'
+  live2d_model_name: 'mao_pro'
+  character_name: 'Mao'
+  avatar: 'mao.png'
+  human_name: 'Human'
+  persona_prompt: |
+    You are Mao, a sarcastic AI VTuber...
+```
+
+| Key | Description |
+|---|---|
+| `conf_name` | Display name for this configuration in the UI. |
+| `conf_uid` | Unique identifier used for chat history storage. Must be unique across all configs. |
+| `live2d_model_name` | Name of the Live2D model. Must match an entry in `model_dict.json`. |
+| `character_name` | The AI's name as used in conversations and group chat. |
+| `avatar` | Avatar image filename. Place the file in the `avatars/` directory. |
+| `human_name` | The human's display name in group conversations. |
+| `persona_prompt` | The core system prompt defining the character's personality and behavior. |
+
+### agent_config
+
+Controls which agent architecture handles conversation and which LLM it uses.
+
+```yaml
+agent_config:
+  conversation_agent_choice: 'basic_memory_agent'
+
+  agent_settings:
+    basic_memory_agent:
+      llm_provider: 'ollama_llm'
+      faster_first_response: true
+      segment_method: 'pysbd'
+      use_mcpp: true
+      mcp_enabled_servers: ["time", "ddg-search"]
+
+  llm_configs:
+    ollama_llm:
+      base_url: 'http://localhost:11434/v1'
+      model: 'qwen2.5:latest'
+      temperature: 1.0
+      keep_alive: -1
+      unload_at_exit: true
+
+    openai_llm:
+      llm_api_key: 'sk-...'
+      model: 'gpt-4o'
+      temperature: 1.0
+```
+
+Set `conversation_agent_choice` to one of: `basic_memory_agent`, `letta_agent`, `hume_ai_agent`.
+
+Under `agent_settings`, configure the chosen agent. Under `llm_configs`, add credentials for any LLM providers you use. The `llm_provider` key inside the agent settings must match a key under `llm_configs`.
+
+<Accordion title="All supported LLM providers">
+
+| Key | Provider |
+|---|---|
+| `ollama_llm` | Ollama (local) |
+| `openai_compatible_llm` | Any OpenAI-compatible API |
+| `openai_llm` | OpenAI |
+| `claude_llm` | Anthropic Claude |
+| `gemini_llm` | Google Gemini |
+| `deepseek_llm` | DeepSeek |
+| `mistral_llm` | Mistral |
+| `groq_llm` | Groq |
+| `zhipu_llm` | Zhipu AI (GLM) |
+| `llama_cpp_llm` | Local GGUF via llama.cpp |
+| `lmstudio_llm` | LM Studio local server |
+| `stateless_llm_with_template` | Non-ChatML models with custom templates |
+
+</Accordion>
+
+### asr_config
+
+Controls speech recognition. Set `asr_model` to the key of the backend you want to use.
+
+```yaml
+asr_config:
+  asr_model: 'sherpa_onnx_asr'
+
+  sherpa_onnx_asr:
+    model_type: 'sense_voice'
+    sense_voice: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx'
+    tokens: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt'
+    num_threads: 4
+    use_itn: true
+    provider: 'cpu'
+```
+
+<Note>
+The default `sherpa_onnx_asr` with `sense_voice` model type will automatically download the model on first run if the file does not exist.
+</Note>
+
+Supported values for `asr_model`: `sherpa_onnx_asr`, `faster_whisper`, `whisper_cpp`, `whisper`, `fun_asr`, `groq_whisper_asr`, `azure_asr`.
+
+### tts_config
+
+Controls text-to-speech output. Set `tts_model` to the key of the backend you want to use.
+
+```yaml
+tts_config:
+  tts_model: 'edge_tts'
+
+  edge_tts:
+    voice: 'en-US-AvaMultilingualNeural'
+```
+
+Supported values for `tts_model`: `edge_tts`, `azure_tts`, `pyttsx3_tts`, `bark_tts`, `cosyvoice_tts`, `cosyvoice2_tts`, `melo_tts`, `x_tts`, `gpt_sovits_tts`, `fish_api_tts`, `coqui_tts`, `piper_tts`, `sherpa_onnx_tts`, `spark_tts`, `openai_tts`, `minimax_tts`, `elevenlabs_tts`, `cartesia_tts`, `siliconflow_tts`.
+
+### vad_config
+
+Voice Activity Detection controls when the server considers you to be speaking. The default is `null` (no VAD), which disables voice interruption.
+
+```yaml
+vad_config:
+  vad_model: 'silero_vad'
+
+  silero_vad:
+    orig_sr: 16000
+    target_sr: 16000
+    prob_threshold: 0.4
+    db_threshold: 60
+    required_hits: 3
+    required_misses: 24
+    smoothing_window: 5
+```
+
+Set `vad_model` to `silero_vad` to enable voice interruption.
+
+### tts_preprocessor_config
+
+Controls how text is cleaned before being sent to TTS.
+
+```yaml
+tts_preprocessor_config:
+  remove_special_char: true
+  ignore_brackets: true
+  ignore_parentheses: true
+  ignore_asterisks: true
+  ignore_angle_brackets: true
+
+  translator_config:
+    translate_audio: false
+    translate_provider: 'deeplx'
+    deeplx:
+      deeplx_target_lang: 'JA'
+      deeplx_api_endpoint: 'http://localhost:1188/v2/translate'
+```
+
+Set `translate_audio: true` and configure a translation provider to have the TTS speak in a different language than the conversation.
+
+## live_config
+
+Configures live streaming integrations.
+
+```yaml
+live_config:
+  bilibili_live:
+    room_ids: [1991478060]
+    sessdata: ""
+```
+
+Add Bilibili live room IDs to `room_ids`. The `sessdata` cookie is optional and used for authenticated requests. Requires the `bilibili` optional dependency:
+
+```bash
+uv sync --extra bilibili
+```

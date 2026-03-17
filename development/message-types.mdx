@@ -1,0 +1,339 @@
+---
+title: WebSocket Message Types
+description: Complete reference for all JSON messages exchanged over the Open-LLM-VTuber WebSocket API.
+---
+
+All WebSocket messages are JSON objects with a `"type"` field that determines how they are handled. Messages flow in both directions: the **client** sends requests to the server, and the **server** sends responses and events back.
+
+## Client → Server Messages
+
+### Audio
+
+#### `mic-audio-data`
+
+Raw audio samples captured from the microphone, buffered server-side until `mic-audio-end` is received.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"mic-audio-data"` | |
+| `audio` | `number[]` | Float32 audio samples |
+
+#### `raw-audio-data`
+
+Raw audio for server-side VAD processing. The server runs voice activity detection and automatically triggers transcription when speech is detected.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"raw-audio-data"` | |
+| `audio` | `number[]` | Float32 audio samples |
+
+#### `mic-audio-end`
+
+Signals that microphone capture is complete and the buffered audio should be transcribed and processed.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"mic-audio-end"` | |
+
+### Conversation
+
+#### `text-input`
+
+Send a text message directly, bypassing ASR.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"text-input"` | |
+| `text` | `string` | User's text message |
+| `images` | `string[]` \| `null` | Optional base64-encoded images |
+
+#### `ai-speak-signal`
+
+Trigger a proactive AI response without any user input (e.g., idle chatter).
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"ai-speak-signal"` | |
+
+#### `interrupt-signal`
+
+Interrupt the current AI response mid-stream.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"interrupt-signal"` | |
+| `text` | `string` | The portion of the response the user heard before interrupting |
+
+#### `audio-play-start`
+
+Notify the server that the client has started playing an audio segment. Used in group sessions to forward display text to other group members.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"audio-play-start"` | |
+| `display_text` | `object` \| `null` | Display text metadata (`text`, `name`, `avatar`) |
+
+### History
+
+#### `fetch-history-list`
+
+Request the list of saved conversation histories for the current character.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"fetch-history-list"` | |
+
+#### `fetch-and-set-history`
+
+Load a specific conversation history into the agent's working memory.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"fetch-and-set-history"` | |
+| `history_uid` | `string` | UID of the history to load |
+
+#### `create-new-history`
+
+Create a fresh conversation history and switch to it.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"create-new-history"` | |
+
+#### `delete-history`
+
+Delete a saved conversation history.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"delete-history"` | |
+| `history_uid` | `string` | UID of the history to delete |
+
+### Configuration
+
+#### `fetch-configs`
+
+Request the list of available character configuration files.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"fetch-configs"` | |
+
+#### `switch-config`
+
+Hot-swap the character configuration. The server reinitializes ASR, TTS, and agent if the new config differs.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"switch-config"` | |
+| `file` | `string` | Filename in the `characters/` directory (e.g., `"my_char.yaml"`), or `"conf.yaml"` for the base config |
+
+#### `request-init-config`
+
+Request the current model and configuration state (useful for reconnect scenarios).
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"request-init-config"` | |
+
+#### `fetch-backgrounds`
+
+Request the list of available background images.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"fetch-backgrounds"` | |
+
+### Group
+
+#### `add-client-to-group`
+
+Invite another connected client into a shared chat group.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"add-client-to-group"` | |
+| `invitee_uid` | `string` | `client_uid` of the client to invite |
+
+#### `remove-client-from-group`
+
+Remove a client from the current group.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"remove-client-from-group"` | |
+| `target_uid` | `string` | `client_uid` of the client to remove |
+
+#### `request-group-info`
+
+Request current group membership information.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"request-group-info"` | |
+
+### Utility
+
+#### `heartbeat`
+
+Keep-alive ping. The server responds with `heartbeat-ack`.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"heartbeat"` | |
+
+---
+
+## Server → Client Messages
+
+### Connection
+
+#### `full-text`
+
+General status text, sent on connection established.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"full-text"` | |
+| `text` | `string` | Status message |
+
+#### `set-model-and-conf`
+
+Sent on connection and after a config switch. Instructs the client which Live2D model to load.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"set-model-and-conf"` | |
+| `model_info` | `object` | Live2D model descriptor |
+| `conf_name` | `string` | Human-readable config name |
+| `conf_uid` | `string` | Unique config identifier |
+| `client_uid` | `string` | This client's unique ID |
+
+#### `control`
+
+Instructions to the client's audio pipeline.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"control"` | |
+| `text` | `string` | `"start-mic"`, `"stop-mic"`, `"interrupt"`, or `"mic-audio-end"` |
+
+#### `error`
+
+Reported when a message handler encounters an unrecoverable error.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"error"` | |
+| `message` | `string` | Error description |
+
+#### `heartbeat-ack`
+
+Response to a `heartbeat` message.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"heartbeat-ack"` | |
+
+### Conversation
+
+#### `config-switched`
+
+Confirms a successful `switch-config` operation.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"config-switched"` | |
+| `message` | `string` | Confirmation message |
+
+### History
+
+#### `history-list`
+
+Response to `fetch-history-list`.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"history-list"` | |
+| `histories` | `object[]` | Array of history descriptors |
+
+#### `history-data`
+
+Response to `fetch-and-set-history`. Contains the messages for display.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"history-data"` | |
+| `messages` | `object[]` | Array of `{role, content}` objects (system messages excluded) |
+
+#### `new-history-created`
+
+Response to `create-new-history`.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"new-history-created"` | |
+| `history_uid` | `string` | UID of the newly created history |
+
+#### `history-deleted`
+
+Response to `delete-history`.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"history-deleted"` | |
+| `success` | `boolean` | Whether the deletion succeeded |
+| `history_uid` | `string` | UID of the deleted history |
+
+### Configuration
+
+#### `config-files`
+
+Response to `fetch-configs`.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"config-files"` | |
+| `configs` | `string[]` | List of available config filenames |
+
+#### `background-files`
+
+Response to `fetch-backgrounds`.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"background-files"` | |
+| `files` | `string[]` | List of available background image paths |
+
+### Group
+
+#### `group-update`
+
+Sent on connection and whenever group membership changes.
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `"group-update"` | |
+| `members` | `string[]` | List of `client_uid` values in the group |
+| `is_owner` | `boolean` | Whether this client owns the group |
+
+---
+
+## Adding a New Message Type
+
+To add a new message type to the handler:
+
+<Steps>
+  <Step title="Add the type to MessageType enum">
+    Open `websocket_handler.py` and add your type string to the appropriate `MessageType` group, or create a new group.
+  </Step>
+  <Step title="Create a handler method">
+    Add `async def _handle_my_type(self, websocket, client_uid, data)` following the `_handle_*` naming convention.
+  </Step>
+  <Step title="Register the handler">
+    Add `"my-type": self._handle_my_type` to the dictionary returned by `_init_message_handlers()`.
+  </Step>
+  <Step title="Handle errors">
+    Wrap logic in try/except and send an `{"type": "error", "message": ...}` response on failure.
+  </Step>
+</Steps>

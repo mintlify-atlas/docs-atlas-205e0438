@@ -1,0 +1,69 @@
+---
+title: Agents Overview
+description: Understand the agent system in Open LLM VTuber and choose the right agent for your use case.
+---
+
+An **agent** is the orchestration layer that sits between user input and the LLM. When you speak to the VTuber, the agent receives your transcribed text, manages conversation history, optionally calls external tools via MCP, streams LLM output token-by-token, segments it into sentences, and hands each sentence off to TTS.
+
+Every character configuration has exactly one active agent at a time, selected by the `conversation_agent_choice` key.
+
+## How agents work
+
+1. **Receive input** — the agent gets a `BatchInput` containing transcribed text and optional images.
+2. **Manage memory** — the agent decides how conversation history is stored (in-context, external server, vector DB, etc.).
+3. **Call the LLM** — the agent sends the prompt and history to an LLM and streams back tokens.
+4. **Tool calls** — if MCP is enabled, the agent can pause the stream, execute tools, and resume.
+5. **Sentence segmentation** — the token stream is split into sentences before being passed to TTS, reducing first-response latency.
+6. **Output** — the agent yields either `SentenceOutput` (text → TTS pipeline) or `AudioOutput` (pre-rendered audio, used by Hume AI).
+
+## Selecting an agent
+
+The active agent is set inside `agent_config` in your character's YAML file (or `conf.yaml`):
+
+```yaml
+agent_config:
+  conversation_agent_choice: 'basic_memory_agent'  # change this line
+```
+
+Valid values are listed in the table below.
+
+## Available agents
+
+| Agent key | Name | Memory type | Requires external service |
+|---|---|---|---|
+| `basic_memory_agent` | Basic Memory Agent | In-context (within session) | No |
+| `mem0_agent` | Mem0 Agent | Persistent vector storage | Yes (Qdrant or similar) |
+| `letta_agent` | Letta Agent | Persistent (Letta server) | Yes (Letta server) |
+| `hume_ai_agent` | Hume AI Agent | Managed by Hume AI | Yes (Hume AI API) |
+
+<Note>
+  `basic_memory_agent` is the default and works out of the box with any local or cloud LLM. Start here if you are new to Open LLM VTuber.
+</Note>
+
+## Switching agents
+
+Change a single line in your `conf.yaml` (or character YAML) and restart the server:
+
+```yaml
+agent_config:
+  conversation_agent_choice: 'letta_agent'   # was 'basic_memory_agent'
+```
+
+Each agent has its own settings block inside `agent_settings`. You only need to configure the block for the agent you are using.
+
+## Agent pages
+
+<CardGroup cols={2}>
+  <Card title="Basic Memory Agent" href="/user-guide/agents/basic-memory" icon="brain">
+    The default agent. Simple in-context memory with optional MCP tool use.
+  </Card>
+  <Card title="Letta Agent" href="/user-guide/agents/letta" icon="database">
+    Persistent long-term memory powered by the Letta server (formerly MemGPT).
+  </Card>
+  <Card title="Hume AI Agent" href="/user-guide/agents/hume-ai" icon="waveform">
+    Empathic voice AI with built-in emotional speech synthesis from Hume AI.
+  </Card>
+  <Card title="Mem0 Agent" href="/user-guide/agents/mem0" icon="layer-group">
+    Persistent memory via vector storage without running a full Letta server.
+  </Card>
+</CardGroup>

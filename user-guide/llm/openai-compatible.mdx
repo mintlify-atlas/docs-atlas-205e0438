@@ -1,0 +1,113 @@
+---
+title: OpenAI-compatible API
+description: Connect Open LLM VTuber to any OpenAI-compatible inference server — vLLM, llama.cpp server, text-generation-webui, Together AI, and more.
+---
+
+The `openai_compatible_llm` backend works with any server that implements the OpenAI Chat Completions API. This covers a large number of local and cloud inference solutions, including:
+
+- **vLLM** — high-throughput local inference
+- **llama.cpp server** — lightweight local inference from GGUF models
+- **text-generation-webui** (oobabooga) with the OpenAI extension
+- **Together AI**, **Anyscale**, **Fireworks AI**, and similar cloud providers
+- **Any other OpenAI-compatible endpoint**
+
+## When to use this backend
+
+Use `openai_compatible_llm` when:
+- You are already running a local inference server that is not Ollama or LM Studio
+- You want to connect to a third-party cloud provider that is OpenAI-compatible but does not have its own dedicated config key
+- You need `organization_id` or `project_id` support
+
+<Note>
+If you are using Ollama, use the dedicated [`ollama_llm`](/user-guide/llm/ollama) backend instead — it provides additional features such as model preloading and memory management. If you are using LM Studio, use [`lmstudio_llm`](/user-guide/llm/lmstudio).
+</Note>
+
+## Configuration
+
+<CodeGroup>
+
+```yaml conf.yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        llm_provider: 'openai_compatible_llm'
+
+    llm_configs:
+      openai_compatible_llm:
+        base_url: 'http://localhost:11434/v1'
+        llm_api_key: 'somethingelse'
+        organization_id: null
+        project_id: null
+        model: 'qwen2.5:latest'
+        temperature: 1.0
+        interrupt_method: 'user'
+```
+
+</CodeGroup>
+
+## Parameters
+
+<ParamField path="base_url" type="string" required>
+  The base URL of the OpenAI-compatible API server, including the `/v1` path suffix. Examples:
+  - Local Ollama: `http://localhost:11434/v1`
+  - Local vLLM: `http://localhost:8000/v1`
+  - Together AI: `https://api.together.xyz/v1`
+</ParamField>
+
+<ParamField path="llm_api_key" type="string" required>
+  API key for authentication. For local servers that do not require a key, set this to any non-empty string (e.g., `"none"`).
+</ParamField>
+
+<ParamField path="model" type="string" required>
+  The model identifier as expected by the server. For local servers this is usually the model name or path. For cloud providers, use the model ID from their documentation.
+</ParamField>
+
+<ParamField path="temperature" type="number" default="1.0">
+  Sampling temperature between 0 and 2. Lower values produce more focused output; higher values produce more varied responses.
+</ParamField>
+
+<ParamField path="organization_id" type="string">
+  Optional organization ID, forwarded in the API request header. Required by some providers.
+</ParamField>
+
+<ParamField path="project_id" type="string">
+  Optional project ID, forwarded in the API request header. Required by some providers.
+</ParamField>
+
+<ParamField path="interrupt_method" type="string" default="user">
+  Controls how conversation interruption signals are injected into the chat history. Use `"system"` if the provider supports system messages anywhere in the message list. Use `"user"` otherwise. You rarely need to change this.
+</ParamField>
+
+## Examples for common backends
+
+<CodeGroup>
+
+```yaml vLLM
+openai_compatible_llm:
+  base_url: 'http://localhost:8000/v1'
+  llm_api_key: 'none'
+  model: 'Qwen/Qwen2.5-7B-Instruct'
+  temperature: 1.0
+  interrupt_method: 'user'
+```
+
+```yaml Together AI
+openai_compatible_llm:
+  base_url: 'https://api.together.xyz/v1'
+  llm_api_key: 'your-together-api-key'
+  model: 'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo'
+  temperature: 1.0
+  interrupt_method: 'user'
+```
+
+```yaml llama.cpp server
+openai_compatible_llm:
+  base_url: 'http://localhost:8080/v1'
+  llm_api_key: 'none'
+  model: 'qwen2.5'
+  temperature: 1.0
+  interrupt_method: 'user'
+```
+
+</CodeGroup>

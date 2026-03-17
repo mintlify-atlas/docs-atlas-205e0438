@@ -1,0 +1,166 @@
+---
+title: Code Style Guide
+description: Formatting, linting, and naming conventions for the Open-LLM-VTuber codebase.
+---
+
+## Tooling
+
+The project uses **[Ruff](https://github.com/astral-sh/ruff)** for both linting and formatting. No other formatters (Black, isort, etc.) are used.
+
+Configuration in `pyproject.toml`:
+
+```toml
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+# E402 ignored for the Bilibili live script only
+per-file-ignores = { "scripts/run_bilibili_live.py" = ["E402"] }
+```
+
+Key points:
+- **Target**: Python 3.10+ syntax and features.
+- All default Ruff lint rules apply except the per-file overrides listed above.
+
+## Running the Tools
+
+```bash
+# Check for lint errors
+ruff check .
+
+# Auto-fix lint errors where possible
+ruff check --fix .
+
+# Format all files
+ruff format .
+
+# Check formatting without modifying files
+ruff format --check .
+```
+
+## Pre-commit Hooks
+
+Pre-commit hooks enforce these rules before every commit. The `.pre-commit-config.yaml` configuration:
+
+```yaml
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.6
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+```
+
+- `ruff` runs with `--fix` and exits with a non-zero code if any fixes were applied, prompting you to review and re-stage.
+- `ruff-format` enforces consistent formatting.
+
+Install the hooks:
+
+```bash
+pre-commit install
+```
+
+## Naming Conventions
+
+### WebSocket message handlers
+
+All handler methods on `WebSocketHandler` use the `_handle_*` prefix:
+
+```python
+async def _handle_audio_data(self, websocket, client_uid, data): ...
+async def _handle_conversation_trigger(self, websocket, client_uid, data): ...
+async def _handle_config_switch(self, websocket, client_uid, data): ...
+```
+
+Handlers are registered in `_init_message_handlers()` which maps message type strings to handler callables.
+
+### Factory classes
+
+All factory methods are `@staticmethod` and named `get_*` or `create_*`:
+
+```python
+class ASRFactory:
+    @staticmethod
+    def get_asr_system(system_name: str, **kwargs) -> ASRInterface: ...
+
+class TTSFactory:
+    @staticmethod
+    def get_tts_engine(engine_type: str, **kwargs) -> TTSInterface: ...
+
+class AgentFactory:
+    @staticmethod
+    def create_agent(conversation_agent_choice: str, ...) -> AgentInterface: ...
+```
+
+### Engine implementation classes
+
+| Module | Class name convention | Example |
+|---|---|---|
+| ASR backends | `VoiceRecognition` | `faster_whisper_asr.VoiceRecognition` |
+| TTS backends | `TTSEngine` | `edge_tts.TTSEngine` |
+| Agent backends | Descriptive name | `BasicMemoryAgent`, `LettaAgent` |
+
+### Configuration classes
+
+Use PascalCase with the suffix `Config`:
+
+```python
+class FasterWhisperASRConfig(BaseModel): ...
+class EdgeTTSConfig(BaseModel): ...
+class BasicMemoryAgentConfig(BaseModel): ...
+```
+
+## Import Style
+
+Factory branches use **lazy imports** to avoid loading optional heavy dependencies at startup:
+
+```python
+# Good — only imported when this branch executes
+elif system_name == "fun_asr":
+    from .fun_asr import VoiceRecognition as FunASR
+    return FunASR(**kwargs)
+
+# Avoid — loaded on every import of the factory module
+from .fun_asr import VoiceRecognition as FunASR
+```
+
+## Type Annotations
+
+All public methods and function signatures should have type annotations. Use `from __future__ import annotations` for forward references when needed. The codebase targets Python 3.10+, so `X | Y` union syntax and `match` statements are available.
+
+```python
+# Python 3.10+ union syntax
+def init_vad(self, vad_config: VADConfig) -> None: ...
+self.vad_engine: VADInterface | None = None
+```
+
+## Logging
+
+Use [Loguru](https://github.com/Delgan/loguru) exclusively. Do not use the standard library `logging` module directly:
+
+```python
+from loguru import logger
+
+logger.info(f"Initializing ASR: {asr_config.asr_model}")
+logger.debug(f"System prompt: {system_prompt}")
+logger.warning("VAD is disabled.")
+logger.error(f"Failed to initialize agent: {e}")
+logger.critical(f"Error initializing Live2D: {e}")
+```
+
+## Error Handling
+
+WebSocket handlers must always send an error message to the client on failure rather than silently swallowing exceptions:
+
+```python
+try:
+    await do_something()
+except Exception as e:
+    logger.error(f"Error doing something: {e}")
+    await websocket.send_text(
+        json.dumps({"type": "error", "message": str(e)})
+    )
+```
+
+When adding a new WebSocket handler, also implement `_cleanup_failed_connection` logic to ensure stale state is removed on failure.

@@ -1,122 +1,169 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Open LLM VTuber",
+  "theme": "almond",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#9c5c6c",
+    "light": "#3f3a6c",
+    "dark": "#c6b3ca"
   },
   "favicon": "/favicon.svg",
+  "logo": {
+    "light": "https://media.brand.dev/cca17bc0-f434-42f8-adbe-eb2546383aae.png",
+    "dark": "https://media.brand.dev/cca17bc0-f434-42f8-adbe-eb2546383aae.png"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Open-LLM-VTuber/Open-LLM-VTuber"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Open-LLM-VTuber/Open-LLM-VTuber"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Get Started",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Overview",
+            "pages": ["introduction", "features"]
+          },
+          {
+            "group": "Installation",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "get-started/quick-start",
+              "get-started/docker",
+              "get-started/update",
+              "get-started/uninstall"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Configuration",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "get-started/configuration-overview",
+              "get-started/character-config"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "User Guide",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "LLM Backends",
             "pages": [
-              "api-reference/introduction"
+              "user-guide/llm/overview",
+              "user-guide/llm/ollama",
+              "user-guide/llm/openai-compatible",
+              "user-guide/llm/openai",
+              "user-guide/llm/claude",
+              "user-guide/llm/gemini",
+              "user-guide/llm/deepseek",
+              "user-guide/llm/groq",
+              "user-guide/llm/lmstudio"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Speech Recognition (ASR)",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "user-guide/asr/overview",
+              "user-guide/asr/sherpa-onnx",
+              "user-guide/asr/faster-whisper",
+              "user-guide/asr/whisper-cpp",
+              "user-guide/asr/fun-asr",
+              "user-guide/asr/azure-asr",
+              "user-guide/asr/groq-whisper"
+            ]
+          },
+          {
+            "group": "Text to Speech (TTS)",
+            "pages": [
+              "user-guide/tts/overview",
+              "user-guide/tts/edge-tts",
+              "user-guide/tts/sherpa-onnx",
+              "user-guide/tts/azure-tts",
+              "user-guide/tts/gpt-sovits",
+              "user-guide/tts/cosyvoice",
+              "user-guide/tts/melo-tts",
+              "user-guide/tts/fish-audio",
+              "user-guide/tts/elevenlabs",
+              "user-guide/tts/piper",
+              "user-guide/tts/coqui"
+            ]
+          },
+          {
+            "group": "Customization",
+            "pages": [
+              "user-guide/customization/live2d-model",
+              "user-guide/customization/character-persona",
+              "user-guide/customization/expressions",
+              "user-guide/customization/voice-cloning"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "user-guide/features/visual-perception",
+              "user-guide/features/voice-interruption",
+              "user-guide/features/pet-mode",
+              "user-guide/features/group-conversation",
+              "user-guide/features/mcp-tools",
+              "user-guide/features/proactive-speaking",
+              "user-guide/features/tts-translation",
+              "user-guide/features/live-streaming"
+            ]
+          },
+          {
+            "group": "Agents",
+            "pages": [
+              "user-guide/agents/overview",
+              "user-guide/agents/basic-memory",
+              "user-guide/agents/letta",
+              "user-guide/agents/hume-ai",
+              "user-guide/agents/mem0"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "development/overview",
+              "development/architecture"
+            ]
+          },
+          {
+            "group": "Extending the System",
+            "pages": [
+              "development/adding-llm",
+              "development/adding-asr",
+              "development/adding-tts",
+              "development/adding-agent"
+            ]
+          },
+          {
+            "group": "WebSocket API",
+            "pages": [
+              "development/websocket-api",
+              "development/message-types"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/contributing",
+              "development/code-style"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

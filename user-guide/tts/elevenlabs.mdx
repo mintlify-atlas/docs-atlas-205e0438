@@ -1,0 +1,119 @@
+---
+title: "ElevenLabs"
+description: "Configure ElevenLabs cloud TTS in Open LLM VTuber for premium voice quality with expressive voice controls."
+---
+
+ElevenLabs provides state-of-the-art neural TTS with fine-grained controls over voice stability, style, and similarity. It supports voice cloning from your own recordings and offers a large library of pre-made voices.
+
+<Info>
+  ElevenLabs is a paid cloud service. You need an ElevenLabs account and API key. A free tier with limited monthly characters is available.
+</Info>
+
+## Setup
+
+<Steps>
+  <Step title="Create an ElevenLabs account">
+    Sign up at [https://elevenlabs.io](https://elevenlabs.io) and go to **Profile Settings** to copy your API key.
+  </Step>
+  <Step title="Find a voice ID">
+    In the ElevenLabs voice library, select a voice and copy its **Voice ID** from the voice details panel.
+  </Step>
+  <Step title="Set tts_model to elevenlabs_tts">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'elevenlabs_tts'
+    ```
+  </Step>
+  <Step title="Add your credentials and voice settings">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'elevenlabs_tts'
+        elevenlabs_tts:
+          api_key: 'your-elevenlabs-api-key'
+          voice_id: 'your-voice-id'
+          model_id: 'eleven_multilingual_v2'
+          output_format: 'mp3_44100_128'
+          stability: 0.5
+          similarity_boost: 0.5
+          style: 0.0
+          use_speaker_boost: true
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'elevenlabs_tts'
+    elevenlabs_tts:
+      api_key: ''
+      voice_id: ''
+      model_id: 'eleven_multilingual_v2'
+      output_format: 'mp3_44100_128'
+      stability: 0.5
+      similarity_boost: 0.5
+      style: 0.0
+      use_speaker_boost: true
+```
+
+<ParamField path="api_key" type="string" required>
+  Your ElevenLabs API key. Available from your profile settings page.
+</ParamField>
+
+<ParamField path="voice_id" type="string" required>
+  The ElevenLabs voice ID to use for synthesis. Each voice in the ElevenLabs library has a unique ID (e.g., `JBFqnCBsd6RMkjVDRZzb`).
+</ParamField>
+
+<ParamField path="model_id" type="string" default="eleven_multilingual_v2">
+  The ElevenLabs model to use for synthesis. Common options:
+  - `eleven_multilingual_v2` — high quality, supports 29 languages (default)
+  - `eleven_monolingual_v1` — English only, lower latency
+  - `eleven_turbo_v2` — fastest, English only
+  - `eleven_turbo_v2_5` — fastest, multilingual
+</ParamField>
+
+<ParamField path="output_format" type="string" default="mp3_44100_128">
+  Output audio format and quality. Format: `{codec}_{sample_rate}_{bitrate}`. Examples:
+  - `mp3_44100_128` — MP3 at 44.1 kHz, 128 kbps (default)
+  - `mp3_44100_192` — MP3 at 44.1 kHz, 192 kbps
+  - `pcm_16000` — raw PCM at 16 kHz
+</ParamField>
+
+<ParamField path="stability" type="number" default="0.5">
+  Controls how consistent the voice is between generations. Range `0.0` to `1.0`. Lower values introduce more variation; higher values produce more consistent but potentially monotone output.
+</ParamField>
+
+<ParamField path="similarity_boost" type="number" default="0.5">
+  How closely the output matches the original voice profile. Range `0.0` to `1.0`. Higher values can increase background noise or artifacts if set too high.
+</ParamField>
+
+<ParamField path="style" type="number" default="0.0">
+  Style exaggeration. Range `0.0` to `1.0`. Values above `0.0` amplify the speaking style of the voice. Leave at `0.0` for most use cases.
+</ParamField>
+
+<ParamField path="use_speaker_boost" type="boolean" default="true">
+  When enabled, applies additional processing to make the output more closely match the original speaker. Recommended to leave enabled.
+</ParamField>
+
+## Tuning voice settings
+
+<Tip>
+  Start with the defaults (`stability: 0.5`, `similarity_boost: 0.5`). Adjust `stability` first — lower values make the voice sound more expressive, higher values make it more consistent.
+</Tip>
+
+<Tip>
+  For real-time conversation, the `eleven_turbo_v2_5` model offers the lowest latency while maintaining multilingual support.
+</Tip>
+
+<Warning>
+  Keep your API key out of version control. Do not commit `conf.yaml` with a real API key to a public repository.
+</Warning>

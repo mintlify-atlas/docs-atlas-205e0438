@@ -1,0 +1,84 @@
+---
+title: "Fish Audio"
+description: "Configure Fish Audio's cloud TTS API in Open LLM VTuber for high-quality voice synthesis with voice cloning support."
+---
+
+Fish Audio is a cloud-based TTS service that offers high-quality neural voice synthesis and voice cloning. You select voices by their reference ID, which you can find on the [Fish Audio website](https://fish.audio).
+
+<Info>
+  Fish Audio is a paid service. You need an API key from your Fish Audio account. Some usage tiers include free credits.
+</Info>
+
+## Setup
+
+<Steps>
+  <Step title="Create a Fish Audio account">
+    Sign up at [https://fish.audio](https://fish.audio) and obtain an API key from your account settings.
+  </Step>
+  <Step title="Find a voice reference ID">
+    Browse the Fish Audio voice library to find the voice you want. Copy the reference ID shown on the voice's page.
+  </Step>
+  <Step title="Set tts_model to fish_api_tts">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'fish_api_tts'
+    ```
+  </Step>
+  <Step title="Add your credentials">
+    ```yaml
+    character_config:
+      tts_config:
+        tts_model: 'fish_api_tts'
+        fish_api_tts:
+          api_key: 'your-fish-audio-api-key'
+          reference_id: 'your-voice-reference-id'
+          latency: 'balanced'
+          base_url: 'https://api.fish.audio'
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    uv run run_server.py
+    ```
+  </Step>
+</Steps>
+
+## Configuration reference
+
+```yaml
+character_config:
+  tts_config:
+    tts_model: 'fish_api_tts'
+    fish_api_tts:
+      api_key: ''
+      reference_id: ''
+      latency: 'balanced'
+      base_url: 'https://api.fish.audio'
+```
+
+<ParamField path="api_key" type="string" required>
+  Your Fish Audio API key. Found in your account settings on the Fish Audio website.
+</ParamField>
+
+<ParamField path="reference_id" type="string" required>
+  The reference ID of the voice to use. Each voice on the Fish Audio platform has a unique ID. Browse the voice library to find the ID for the voice you want.
+</ParamField>
+
+<ParamField path="latency" type="string" default="balanced">
+  Latency mode for generation. Options:
+  - `'normal'` — full quality, slightly higher latency
+  - `'balanced'` — faster response with near-equivalent quality
+</ParamField>
+
+<ParamField path="base_url" type="string" default="https://api.fish.audio">
+  Base URL of the Fish Audio API. Change this only if you are using a self-hosted or regional Fish Audio endpoint.
+</ParamField>
+
+<Warning>
+  Keep your API key out of version control. Do not commit `conf.yaml` with a real API key to a public repository.
+</Warning>
+
+<Tip>
+  Use `latency: 'balanced'` for lower time-to-first-audio in interactive conversations. Switch to `'normal'` if you notice a quality difference that matters for your use case.
+</Tip>

@@ -1,0 +1,102 @@
+---
+title: Ollama
+description: Run local LLMs with Ollama — the default LLM backend for Open LLM VTuber.
+---
+
+Ollama is the default LLM backend for Open LLM VTuber. It lets you download and run open-source models (Qwen, Llama, Mistral, and many others) locally with a single command. No API key is required and all inference happens on your machine.
+
+## When to use Ollama
+
+- You want a fully offline setup with no API costs
+- You have at least 8 GB of RAM (16 GB+ recommended for larger models)
+- You want to try the project with minimal setup
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install Ollama">
+    Download and install Ollama from [ollama.com](https://ollama.com). The installer is available for macOS, Windows, and Linux.
+  </Step>
+  <Step title="Pull a model">
+    Open a terminal and pull the recommended model:
+
+    ```bash
+    ollama pull qwen2.5:latest
+    ```
+
+    Other good options for VTuber conversations:
+
+    ```bash
+    ollama pull llama3.2:latest
+    ollama pull qwen2.5:7b
+    ```
+  </Step>
+  <Step title="Verify Ollama is running">
+    Run `ollama list` to start the Ollama server (it starts automatically on most platforms) and confirm the model is available:
+
+    ```bash
+    ollama list
+    ```
+  </Step>
+  <Step title="Configure conf.yaml">
+    Set `llm_provider` to `ollama_llm` and fill in the `ollama_llm` section under `llm_configs`.
+  </Step>
+</Steps>
+
+## Configuration
+
+<CodeGroup>
+
+```yaml conf.yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        llm_provider: 'ollama_llm'
+
+    llm_configs:
+      ollama_llm:
+        base_url: 'http://localhost:11434/v1'
+        model: 'qwen2.5:latest'
+        temperature: 1.0
+        keep_alive: -1
+        unload_at_exit: True
+```
+
+</CodeGroup>
+
+## Parameters
+
+<ParamField path="base_url" type="string" required default="http://localhost:11434/v1">
+  The base URL of the Ollama API server. Change this if you are running Ollama on a different host or port. The path must end in `/v1`.
+</ParamField>
+
+<ParamField path="model" type="string" required default="qwen2.5:latest">
+  The name of the Ollama model to use. Must match a model name returned by `ollama list`. Examples: `qwen2.5:latest`, `llama3.2:latest`, `qwen2.5:7b`.
+</ParamField>
+
+<ParamField path="temperature" type="number" default="1.0">
+  Sampling temperature between 0 and 2. Lower values produce more focused, deterministic output. Higher values produce more varied responses.
+</ParamField>
+
+<ParamField path="keep_alive" type="number" default="-1">
+  How long (in seconds) to keep the model loaded in memory after the last request. Set to `-1` to keep the model loaded indefinitely, even after Open LLM VTuber exits. Set to `0` to unload immediately after each request.
+</ParamField>
+
+<ParamField path="unload_at_exit" type="boolean" default="true">
+  When `True`, Open LLM VTuber sends an unload request to Ollama when the application shuts down. This frees VRAM/RAM. Set to `False` if you want the model to remain loaded after the app exits (overrides `keep_alive` behavior on exit).
+</ParamField>
+
+## Notes
+
+<Warning>
+If Open LLM VTuber fails to connect to Ollama on startup, the AI will repeatedly respond with "Error connecting chat endpoint". Make sure Ollama is running before starting the server. You can confirm by running `ollama list`.
+</Warning>
+
+<Note>
+Ollama preloads the model into memory when Open LLM VTuber starts. The first startup may take a moment while the model loads. Subsequent responses will be faster.
+</Note>
+
+<Tip>
+For a balance of quality and speed on consumer hardware, `qwen2.5:7b` is a solid choice. For higher quality at the cost of more RAM, try `qwen2.5:14b` or `llama3.1:8b`.
+</Tip>

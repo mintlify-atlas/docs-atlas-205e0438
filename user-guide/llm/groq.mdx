@@ -1,0 +1,74 @@
+---
+title: Groq
+description: Connect Open LLM VTuber to Groq for extremely fast LLM inference on hosted open-source models.
+---
+
+The `groq_llm` backend connects to Groq's inference API. Groq uses custom LPU hardware to deliver exceptionally fast inference on popular open-source models like Llama 3, Mixtral, and Gemma. It has a free tier with generous rate limits.
+
+## When to use Groq
+
+- You want cloud-hosted open-source models without running local hardware
+- You need low latency for responsive real-time conversation
+- You want a free-tier cloud option (Groq has a free tier)
+
+## Prerequisites
+
+<Steps>
+  <Step title="Create a Groq account">
+    Sign up at [console.groq.com](https://console.groq.com). A free account includes a rate-limited API key.
+  </Step>
+  <Step title="Generate an API key">
+    Go to **API Keys** in the GroqCloud console and create a new key.
+  </Step>
+  <Step title="Add the key to conf.yaml">
+    Replace `'your groq API key'` in the config with your actual key.
+  </Step>
+</Steps>
+
+## Configuration
+
+<CodeGroup>
+
+```yaml conf.yaml
+character_config:
+  agent_config:
+    agent_settings:
+      basic_memory_agent:
+        llm_provider: 'groq_llm'
+
+    llm_configs:
+      groq_llm:
+        llm_api_key: 'your groq API key'
+        model: 'llama-3.3-70b-versatile'
+        temperature: 1.0
+```
+
+</CodeGroup>
+
+## Parameters
+
+<ParamField path="llm_api_key" type="string" required>
+  Your Groq API key from the GroqCloud console.
+</ParamField>
+
+<ParamField path="model" type="string" required default="llama-3.3-70b-versatile">
+  The model to use. Groq hosts a curated set of open-source models. Common options:
+  - `llama-3.3-70b-versatile` — large, capable Llama 3 model (default)
+  - `llama-3.1-8b-instant` — fast, lightweight model
+  - `mixtral-8x7b-32768` — Mixtral MoE model with 32K context
+  - `gemma2-9b-it` — Google's Gemma 2 instruction-tuned model
+
+  Check [console.groq.com/docs/models](https://console.groq.com/docs/models) for the current model list.
+</ParamField>
+
+<ParamField path="temperature" type="number" default="1.0">
+  Sampling temperature between 0 and 2. Lower values produce more focused output; higher values produce more varied responses.
+</ParamField>
+
+<Note>
+Open LLM VTuber connects to Groq via `https://api.groq.com/openai/v1`. The endpoint is fully OpenAI-compatible and you do not need to set `base_url`.
+</Note>
+
+<Tip>
+Groq's free tier is well-suited for personal VTuber use. If you hit rate limits during heavy use, consider the `llama-3.1-8b-instant` model, which is faster and consumes fewer tokens per second of allowed quota.
+</Tip>

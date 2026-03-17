@@ -1,0 +1,103 @@
+---
+title: "Group Conversation"
+description: "Run multiple AI characters that talk to each other and to you simultaneously."
+---
+
+Group conversation mode lets you bring multiple AI characters into a shared session. Each character maintains its own persona, voice, and Live2D model. They take turns responding to user input and to each other, creating a multi-party conversation.
+
+## How it works
+
+When a group conversation is started:
+
+1. Each connected client (one per character) joins a shared conversation group.
+2. The user's input is broadcast to all group members.
+3. Characters respond in turn, with each AI receiving the accumulated conversation history so it can react to what others have said.
+4. The `group_conversation_prompt` tool prompt is automatically injected into each character's context, informing them of who the other participants are.
+
+## The group conversation prompt
+
+The `group_conversation_prompt` (`prompts/utils/group_conversation_prompt.txt`) is appended to each character's system prompt when a group session starts:
+
+```
+Now you are in a group conversation.
+The human participant is {human_name}.
+The other AI participants are: {other_ais}.
+Avoid using `:` to indicate your response. Just speak naturally.
+You are free to address other AI participants.
+Try to vary between short and long responses to allow others to interact.
+Be proactive in finding interesting topics to make the conversation lively and fun.
+```
+
+`{human_name}` and `{other_ais}` are filled in at runtime from `character_config.human_name` and the names of the other connected characters.
+
+## Enabling the prompt
+
+The `group_conversation_prompt` is included in `system_config.tool_prompts` by default:
+
+```yaml
+system_config:
+  tool_prompts:
+    group_conversation_prompt: 'group_conversation_prompt'
+```
+
+## Character name settings
+
+Each character's name in the conversation is controlled by two fields in `character_config`:
+
+```yaml
+character_config:
+  character_name: 'Mao'    # The AI's display name and in-conversation name
+  human_name: 'Human'      # What the AI calls the user
+```
+
+In group conversations, the `character_name` of each character is used to attribute their responses in the shared conversation history.
+
+## Setting up a group conversation
+
+<Steps>
+  <Step title="Create character YAML files">
+    Create one YAML file per character in the `characters/` directory. Each must have a unique `conf_uid`.
+
+    ```yaml
+    # characters/aiko.yaml
+    character_config:
+      conf_name: 'Aiko'
+      conf_uid: 'aiko_001'
+      character_name: 'Aiko'
+      live2d_model_name: 'mao_pro'
+      persona_prompt: |
+        You are Aiko, an energetic and cheerful AI who loves music and fashion.
+    ```
+
+    ```yaml
+    # characters/zero.yaml
+    character_config:
+      conf_name: 'Zero'
+      conf_uid: 'zero_001'
+      character_name: 'Zero'
+      live2d_model_name: 'mao_pro'
+      persona_prompt: |
+        You are Zero, a calm and analytical AI who speaks precisely and rarely shows emotion.
+    ```
+  </Step>
+
+  <Step title="Connect multiple clients">
+    Open the web UI in two separate browser tabs (or two desktop client windows). Each tab acts as a separate client.
+  </Step>
+
+  <Step title="Switch characters per client">
+    In each tab, use the character selector to switch to a different character config. One tab loads Aiko, the other loads Zero.
+  </Step>
+
+  <Step title="Start a group session">
+    Use the group conversation button in the UI to link the clients into a group. Once linked, messages from either client are broadcast to the entire group.
+  </Step>
+</Steps>
+
+<Tip>
+  Give each character a distinct personality and speech style so their responses are clearly distinguishable in the conversation flow.
+</Tip>
+
+<Note>
+  Each character runs its own LLM context with its own conversation history. Characters are aware of each other's responses through the shared history that is passed to each one at the start of their turn.
+</Note>

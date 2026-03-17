@@ -1,0 +1,163 @@
+---
+title: Adding a New LLM Backend
+description: Step-by-step guide to integrating a new language model provider into Open-LLM-VTuber.
+---
+
+All language model backends in Open-LLM-VTuber are **stateless**: they receive a list of messages, return a streaming response, and store no state themselves. State (memory, history) is managed by the `Agent` layer above them.
+
+## The StatelessLLMInterface
+
+Every LLM backend must implement `StatelessLLMInterface` from `src/open_llm_vtuber/agent/stateless_llm/stateless_llm_interface.py`:
+
+```python
+class StatelessLLMInterface(metaclass=abc.ABCMeta):
+    """
+    The word "stateless" means that the language model does not store memory,
+    system prompts, or user messages. If we send a message to the LLM, its
+    response will be based on the message parameter alone.
+    """
+
+    @abc.abstractmethod
+    async def chat_completion(
+        self,
+        messages: List[Dict[str, Any]],
+        system: str = None,
+        tools: List[Dict[str, Any]] = None,
+    ) -> AsyncIterator[str]:
+        """
+        Generates a chat completion asynchronously.
+
+        Parameters:
+        - messages: The list of messages to send to the API.
+        - system: Optional system prompt.
+        - tools: Optional list of tools in OpenAI function-calling format.
+
+        Yields:
+        - str: Content chunks from the API response.
+        """
+        raise NotImplementedError
+```
+
+The `tools` parameter uses OpenAI function-calling format:
+
+```python
+{
+    "name": "search_web",
+    "description": "Search the web for current information",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "The search query"
+            }
+        },
+        "required": ["query"]
+    }
+}
+```
+
+## Steps to Add a New LLM
+
+<Steps>
+  <Step title="Create the implementation file">
+    Create `src/open_llm_vtuber/agent/stateless_llm/my_llm.py`:
+
+    ```python
+    import abc
+    from typing import AsyncIterator, List, Dict, Any
+    from loguru import logger
+    from .stateless_llm_interface import StatelessLLMInterface
+
+
+    class MyLLM(StatelessLLMInterface):
+        def __init__(
+            self,
+            model: str,
+            api_key: str,
+            base_url: str = None,
+            temperature: float = 0.7,
+        ):
+            self.model = model
+            self.api_key = api_key
+            self.base_url = base_url
+            self.temperature = temperature
+            # Initialize your client here
+
+        async def chat_completion(
+            self,
+            messages: List[Dict[str, Any]],
+            system: str = None,
+            tools: List[Dict[str, Any]] = None,
+        ) -> AsyncIterator[str]:
+            # Build request, call API, yield chunks
+            async for chunk in self._stream_response(messages, system):
+                yield chunk
+    ```
+
+    <Tip>
+      If your provider offers an OpenAI-compatible API, you can extend `OpenAICompatibleLLM` from `openai_compatible_llm.py` instead of starting from scratch.
+    </Tip>
+  </Step>
+
+  <Step title="Register in the factory">
+    Open `src/open_llm_vtuber/agent/stateless_llm_factory.py` and add a branch in `LLMFactory.create_llm`:
+
+    ```python
+    elif llm_provider == "my_llm":
+        from .stateless_llm.my_llm import MyLLM
+
+        return MyLLM(
+            model=kwargs.get("model"),
+            api_key=kwargs.get("llm_api_key"),
+            base_url=kwargs.get("base_url"),
+            temperature=kwargs.get("temperature"),
+        )
+    ```
+  </Step>
+
+  <Step title="Add a config class">
+    Open `src/open_llm_vtuber/config_manager/stateless_llm.py` and add a Pydantic model for your LLM's settings:
+
+    ```python
+    class MyLLMConfig(BaseModel):
+        model: str = "my-model-name"
+        llm_api_key: str = ""
+        base_url: str = "https://api.example.com/v1"
+        temperature: float = 0.7
+        interrupt_method: Literal["system", "user"] = "user"
+    ```
+
+    Then add it to the union type that `llm_configs` resolves to.
+  </Step>
+
+  <Step title="Update the default configuration">
+    Add a commented-out example block to both:
+    - `config_templates/conf.default.yaml`
+    - `config_templates/conf.ZH.default.yaml`
+
+    ```yaml
+    llm_configs:
+      my_llm:
+        model: "my-model-name"
+        llm_api_key: "your-api-key"
+        base_url: "https://api.example.com/v1"
+        temperature: 0.7
+        interrupt_method: user
+    ```
+  </Step>
+</Steps>
+
+## Existing Providers for Reference
+
+| Provider key | File | Notes |
+|---|---|---|
+| `openai_compatible_llm` | `openai_compatible_llm.py` | Works for OpenAI, Gemini, DeepSeek, Groq, etc. |
+| `ollama_llm` | `ollama_llm.py` | Local models via Ollama |
+| `claude_llm` | `claude_llm.py` | Anthropic Claude |
+| `llama_cpp_llm` | `llama_cpp_llm.py` | Local GGUF models |
+| `stateless_llm_with_template` | `stateless_llm_with_template.py` | OpenAI-compatible with prompt templates |
+
+<Warning>
+  Imports inside factory branches are intentionally lazy (deferred until the branch runs). This avoids pulling in heavy optional dependencies at startup when they are not configured.
+</Warning>

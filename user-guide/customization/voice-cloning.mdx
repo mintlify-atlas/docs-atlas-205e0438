@@ -1,0 +1,158 @@
+---
+title: "Voice Cloning"
+description: "Configure TTS backends that support voice cloning for your AI character."
+---
+
+Several TTS backends supported by Open-LLM-VTuber can clone or mimic a reference voice. The setup steps vary by provider.
+
+## Supported backends
+
+<CardGroup cols={2}>
+  <Card title="GPT-SoVITS" icon="microphone">
+    Open-source voice cloning. Runs locally. Requires a reference audio clip.
+  </Card>
+  <Card title="CosyVoice / CosyVoice2" icon="microphone">
+    Open-source voice cloning via Gradio API. Runs locally.
+  </Card>
+  <Card title="Fish Audio" icon="fish">
+    Cloud API. Reference voices are selected by ID from the Fish Audio website.
+  </Card>
+  <Card title="ElevenLabs" icon="waveform">
+    Cloud API. Voices are managed in the ElevenLabs dashboard.
+  </Card>
+</CardGroup>
+
+## GPT-SoVITS
+
+GPT-SoVITS clones a voice from a short reference audio clip (3–10 seconds recommended).
+
+<Steps>
+  <Step title="Deploy GPT-SoVITS">
+    Follow the [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) setup guide to start its API server. The default endpoint is `http://127.0.0.1:9880/tts`.
+  </Step>
+
+  <Step title="Prepare reference audio">
+    Record or obtain a clean audio clip of the target voice. Place it somewhere accessible, and note its path.
+  </Step>
+
+  <Step title="Configure conf.yaml">
+    Set `tts_model` to `gpt_sovits_tts` and fill in the reference audio details:
+
+    ```yaml
+    tts_config:
+      tts_model: 'gpt_sovits_tts'
+
+      gpt_sovits_tts:
+        api_url: 'http://127.0.0.1:9880/tts'
+        text_lang: 'zh'            # Language of the text to synthesize
+        ref_audio_path: '/path/to/reference.wav'
+        prompt_lang: 'zh'          # Language spoken in the reference clip
+        prompt_text: ''            # Transcript of the reference clip (improves quality)
+        text_split_method: 'cut5'
+        batch_size: '1'
+        media_type: 'wav'
+        streaming_mode: 'false'
+    ```
+  </Step>
+</Steps>
+
+## CosyVoice / CosyVoice2
+
+CosyVoice exposes voice cloning through its Gradio web UI.
+
+<Steps>
+  <Step title="Deploy CosyVoice">
+    Follow the [CosyVoice](https://github.com/FunAudioLLM/CosyVoice) setup guide to start the Gradio demo. The default URL is `http://127.0.0.1:50000/`.
+  </Step>
+
+  <Step title="Configure conf.yaml">
+    For 3-second rapid cloning with CosyVoice2:
+
+    ```yaml
+    tts_config:
+      tts_model: 'cosyvoice2_tts'
+
+      cosyvoice2_tts:
+        client_url: 'http://127.0.0.1:50000/'
+        mode_checkbox_group: '3s极速复刻'     # 3-second rapid clone mode
+        prompt_wav_upload_url: 'https://example.com/your-reference.wav'
+        prompt_wav_record_url: 'https://example.com/your-reference.wav'
+        prompt_text: ''
+        stream: False
+        seed: 0
+        speed: 1.0
+        api_name: '/generate_audio'
+    ```
+
+    For CosyVoice v1 with a pre-trained voice:
+
+    ```yaml
+    tts_config:
+      tts_model: 'cosyvoice_tts'
+
+      cosyvoice_tts:
+        client_url: 'http://127.0.0.1:50000/'
+        mode_checkbox_group: '预训练音色'
+        sft_dropdown: '中文女'
+        api_name: '/generate_audio'
+    ```
+  </Step>
+</Steps>
+
+## Fish Audio
+
+Fish Audio is a cloud TTS service with a library of community voices. Each voice has a `reference_id`.
+
+<Steps>
+  <Step title="Get a reference ID">
+    Browse [fish.audio](https://fish.audio/) and find a voice you want to use. The reference ID is shown on the voice's page.
+  </Step>
+
+  <Step title="Get an API key">
+    Create a Fish Audio account and generate an API key in your dashboard.
+  </Step>
+
+  <Step title="Configure conf.yaml">
+    ```yaml
+    tts_config:
+      tts_model: 'fish_api_tts'
+
+      fish_api_tts:
+        api_key: 'your-fish-audio-api-key'
+        reference_id: 'the-voice-reference-id'
+        latency: 'balanced'   # 'normal' for higher quality, 'balanced' for lower latency
+        base_url: 'https://api.fish.audio'
+    ```
+  </Step>
+</Steps>
+
+## ElevenLabs
+
+ElevenLabs offers both pre-made voices and instant voice cloning from a short audio sample.
+
+<Steps>
+  <Step title="Create or clone a voice">
+    In your ElevenLabs dashboard, either select an existing voice or use **Instant Voice Cloning** to create one from an audio sample. Copy the voice ID.
+  </Step>
+
+  <Step title="Configure conf.yaml">
+    ```yaml
+    tts_config:
+      tts_model: 'elevenlabs_tts'
+
+      elevenlabs_tts:
+        api_key: 'your-elevenlabs-api-key'
+        voice_id: 'your-voice-id'
+        model_id: 'eleven_multilingual_v2'
+        output_format: 'mp3_44100_128'
+        stability: 0.5
+        similarity_boost: 0.5
+        style: 0.0
+        use_speaker_boost: true
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  `stability` controls how consistent the voice sounds across generations. Lower values (0.0–0.3) produce more expressive but less predictable output. Higher values (0.7–1.0) are more consistent but flatter.
+</Note>
