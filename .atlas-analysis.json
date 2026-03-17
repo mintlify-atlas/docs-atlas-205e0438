@@ -1,0 +1,184 @@
+{
+  "projectType": "saas",
+  "projectName": "Open LLM VTuber",
+  "projectDescription": "A self-hosted, cross-platform AI companion with Live2D avatar, real-time voice interaction, voice interruption, and support for any LLM, ASR, and TTS backend — running fully offline.",
+  "theme": "almond",
+  "primaryColor": "#9c5c6c",
+  "lightColor": "#3f3a6c",
+  "darkColor": "#c6b3ca",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Get Started",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["introduction", "features"]
+          },
+          {
+            "group": "Installation",
+            "pages": [
+              "get-started/quick-start",
+              "get-started/docker",
+              "get-started/update",
+              "get-started/uninstall"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "get-started/configuration-overview",
+              "get-started/character-config"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "User Guide",
+        "groups": [
+          {
+            "group": "LLM Backends",
+            "pages": [
+              "user-guide/llm/overview",
+              "user-guide/llm/ollama",
+              "user-guide/llm/openai-compatible",
+              "user-guide/llm/openai",
+              "user-guide/llm/claude",
+              "user-guide/llm/gemini",
+              "user-guide/llm/deepseek",
+              "user-guide/llm/groq",
+              "user-guide/llm/lmstudio"
+            ]
+          },
+          {
+            "group": "Speech Recognition (ASR)",
+            "pages": [
+              "user-guide/asr/overview",
+              "user-guide/asr/sherpa-onnx",
+              "user-guide/asr/faster-whisper",
+              "user-guide/asr/whisper-cpp",
+              "user-guide/asr/fun-asr",
+              "user-guide/asr/azure-asr",
+              "user-guide/asr/groq-whisper"
+            ]
+          },
+          {
+            "group": "Text to Speech (TTS)",
+            "pages": [
+              "user-guide/tts/overview",
+              "user-guide/tts/edge-tts",
+              "user-guide/tts/sherpa-onnx",
+              "user-guide/tts/azure-tts",
+              "user-guide/tts/gpt-sovits",
+              "user-guide/tts/cosyvoice",
+              "user-guide/tts/melo-tts",
+              "user-guide/tts/fish-audio",
+              "user-guide/tts/elevenlabs",
+              "user-guide/tts/piper",
+              "user-guide/tts/coqui"
+            ]
+          },
+          {
+            "group": "Customization",
+            "pages": [
+              "user-guide/customization/live2d-model",
+              "user-guide/customization/character-persona",
+              "user-guide/customization/expressions",
+              "user-guide/customization/voice-cloning"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "user-guide/features/visual-perception",
+              "user-guide/features/voice-interruption",
+              "user-guide/features/pet-mode",
+              "user-guide/features/group-conversation",
+              "user-guide/features/mcp-tools",
+              "user-guide/features/proactive-speaking",
+              "user-guide/features/tts-translation",
+              "user-guide/features/live-streaming"
+            ]
+          },
+          {
+            "group": "Agents",
+            "pages": [
+              "user-guide/agents/overview",
+              "user-guide/agents/basic-memory",
+              "user-guide/agents/letta",
+              "user-guide/agents/hume-ai",
+              "user-guide/agents/mem0"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "development/overview",
+              "development/architecture"
+            ]
+          },
+          {
+            "group": "Extending the System",
+            "pages": [
+              "development/adding-llm",
+              "development/adding-asr",
+              "development/adding-tts",
+              "development/adding-agent"
+            ]
+          },
+          {
+            "group": "WebSocket API",
+            "pages": [
+              "development/websocket-api",
+              "development/message-types"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/contributing",
+              "development/code-style"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Real-time voice conversation with AI using any LLM backend (Ollama, OpenAI, Claude, Gemini, etc.)",
+    "Live2D animated avatar with expression and motion control",
+    "Voice interruption without headphones via Silero VAD",
+    "Completely offline operation — no internet required when using local models",
+    "Cross-platform: Windows, macOS, Linux with GPU and CPU support",
+    "Desktop pet mode with transparent background, global top-most, and click-through",
+    "Visual perception — AI can see via camera or screen capture",
+    "20+ TTS backends including voice cloning (GPT-SoVITS, CosyVoice, Fish Audio)",
+    "10+ ASR backends including Sherpa-ONNX, Faster-Whisper, Azure ASR",
+    "MCP (Model Context Protocol) tool integration for LLM tool use",
+    "Group conversation mode with multiple AI participants",
+    "Character customization via YAML config files and Live2D model import",
+    "TTS translation support (e.g., converse in English, AI speaks Japanese)",
+    "Live streaming integration (Bilibili)"
+  ],
+  "publicApiSurface": [
+    "WebSocket endpoint: ws://localhost:12393/client-ws (main client connection)",
+    "WebSocket endpoint: ws://localhost:12393/proxy-ws (proxy connection)",
+    "HTTP server: GET / (serves web frontend)",
+    "HTTP server: GET /live2d-models (serves Live2D model assets)",
+    "agent_factory.AgentFactory.create_agent(config, ...)",
+    "asr_factory.ASRFactory.get_asr_engine(config)",
+    "tts_factory.TTSFactory.get_tts_engine(config)",
+    "agent_interface.AgentInterface (base class for custom agents)",
+    "asr_interface.ASRInterface (base class for custom ASR engines)",
+    "tts_interface.TTSInterface (base class for custom TTS engines)",
+    "service_context.ServiceContext (dependency injection container)",
+    "config_manager (type-safe YAML configuration classes)",
+    "conf.yaml (user configuration file)",
+    "characters/*.yaml (character definition files)"
+  ]
+}
